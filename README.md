@@ -78,7 +78,7 @@ EchoHQ offers a rich set of features designed for a compelling voice social medi
 
 The project follows a clear and organized directory structure:
 
-.
+'''
 ├── app/                      # Expo Router routes and API routes
 │   ├── (tabs)/               # Primary tab navigation layout and screens
 │   │   ├── _layout.tsx
@@ -107,7 +107,7 @@ The project follows a clear and organized directory structure:
 ├── package.json              # Project dependencies and scripts
 ├── tsconfig.json             # TypeScript configuration
 └── README.md                 # Project README file
-
+'''
 
 ## Installation
 

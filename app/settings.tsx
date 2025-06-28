@@ -6,19 +6,47 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Settings, Volume2, Type, Shield, Bell, Palette, ArrowLeft } from 'lucide-react-native';
+import { Settings, Volume2, Type, Shield, Bell, Palette, ArrowLeft, LogOut } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTranscription } from '@/contexts/TranscriptionContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { globalStyles, colors, gradients, spacing, borderRadius, typography, getResponsiveFontSize } from '@/styles/globalStyles';
 
 export default function SettingsScreen() {
   const { transcriptionsEnabled, toggleTranscriptions } = useTranscription();
+  const { logout, user } = useAuth();
 
   const handleBack = () => {
     router.back();
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+              // Navigation will be handled automatically by AuthNavigator
+            } catch (error) {
+              Alert.alert('Error', 'Failed to log out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -38,6 +66,38 @@ export default function SettingsScreen() {
         </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* Account Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Shield size={20} color={colors.accent} />
+              <Text style={[styles.sectionTitle, { fontSize: getResponsiveFontSize(18) }]}>
+                Account
+              </Text>
+            </View>
+            
+            {user && (
+              <View style={styles.accountInfo}>
+                <Text style={[styles.accountUsername, { fontSize: getResponsiveFontSize(16) }]}>
+                  Logged in as: {user.username}
+                </Text>
+                <Text style={[styles.accountId, { fontSize: getResponsiveFontSize(12) }]}>
+                  User ID: {user.id}
+                </Text>
+              </View>
+            )}
+
+            <TouchableOpacity 
+              style={styles.logoutButton}
+              onPress={handleLogout}
+              accessibilityLabel="Log out"
+              accessibilityRole="button">
+              <LogOut size={20} color={colors.error} />
+              <Text style={[styles.logoutButtonText, { fontSize: getResponsiveFontSize(16) }]}>
+                Log Out
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Transcription Settings Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -316,6 +376,41 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: 'Inter-SemiBold',
     color: colors.accent,
+  },
+  accountInfo: {
+    backgroundColor: colors.surface,
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.md,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  accountUsername: {
+    fontFamily: 'Inter-SemiBold',
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  accountId: {
+    fontFamily: 'Inter-Regular',
+    color: colors.textMuted,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(220, 38, 38, 0.1)',
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.sm,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(220, 38, 38, 0.3)',
+    gap: spacing.sm,
+  },
+  logoutButtonText: {
+    fontFamily: 'Inter-SemiBold',
+    color: colors.error,
   },
   settingCard: {
     flexDirection: 'row',

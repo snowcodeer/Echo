@@ -122,24 +122,26 @@ export default function PostScreen() {
     setIsPosting(true);
     
     try {
-      // Create a new user post
+      // Create a new user post with proper data structure
       const newPost = addUserPost({
         username: '@EchoHQ',
         displayName: 'EchoHQ',
         avatar: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
         audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav', // Placeholder audio
-        duration: Math.floor(textContent.length / 10) + 15, // Estimate duration based on text length
+        duration: Math.max(Math.floor(textContent.length / 10) + 15, 20), // Estimate duration based on text length, minimum 20 seconds
         voiceStyle: selectedVoiceStyle === 'original' ? 'Original' : selectedVoiceStyle,
         likes: 0,
         replies: 0,
         timestamp: 'now',
         isLiked: false,
-        tags: generatedTags,
+        tags: generatedTags.length > 0 ? generatedTags : ['voice', 'original', 'authentic'],
         content: textContent,
         isUserPost: true,
         createdVia: 'text-to-speech',
         originalText: textContent,
       });
+
+      console.log('Created text-to-speech post:', newPost);
 
       // Simulate posting delay
       setTimeout(() => {
@@ -147,16 +149,24 @@ export default function PostScreen() {
         setTextModeVisible(false);
         setTextContent('');
         setGeneratedTags([]);
-        Alert.alert('Success!', 'Your text has been converted to speech and posted to your echoes.', [
-          {
-            text: 'OK',
-            onPress: () => {
-              setSelectedVoiceStyle('original');
+        setSelectedVoiceStyle('original');
+        
+        Alert.alert(
+          'Success!', 
+          'Your text has been converted to speech and posted to your echoes.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Reset form state
+                console.log('Text-to-speech post created successfully');
+              },
             },
-          },
-        ]);
+          ]
+        );
       }, 1500);
     } catch (error) {
+      console.error('Error creating text-to-speech post:', error);
       setIsPosting(false);
       Alert.alert('Error', 'Failed to create post. Please try again.');
     }
@@ -289,17 +299,24 @@ export default function PostScreen() {
         createdVia: 'voice',
       });
 
+      console.log('Created voice recording post:', newPost);
+
       // Simulate posting with voice style processing
       setTimeout(() => {
         setIsPosting(false);
-        Alert.alert('Success!', 'Your voice echo has been posted to your echoes.', [
-          {
-            text: 'OK',
-            onPress: resetRecording,
-          },
-        ]);
+        Alert.alert(
+          'Success!', 
+          'Your voice echo has been posted to your echoes.',
+          [
+            {
+              text: 'OK',
+              onPress: resetRecording,
+            },
+          ]
+        );
       }, 2000);
     } catch (error) {
+      console.error('Error creating voice post:', error);
       setIsPosting(false);
       Alert.alert('Error', 'Failed to create post. Please try again.');
     }

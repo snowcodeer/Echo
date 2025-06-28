@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
-  Heart, 
+  Headphones, 
   MessageCircle, 
   Share, 
   Download, 
@@ -20,7 +20,6 @@ import {
   ChevronUp
 } from 'lucide-react-native';
 import { Post } from '@/data/postsDatabase';
-import { useLike } from '@/contexts/LikeContext';
 import { usePlay } from '@/contexts/PlayContext';
 import { useSave } from '@/contexts/SaveContext';
 import { useTranscription } from '@/contexts/TranscriptionContext';
@@ -43,8 +42,7 @@ export default function PostCard({
 }: PostCardProps) {
   const [showReplies, setShowReplies] = useState(false);
   
-  const { toggleLike, isLiked } = useLike();
-  const { currentlyPlaying } = usePlay();
+  const { currentlyPlaying, getPlayCount } = usePlay();
   const { transcriptionsEnabled } = useTranscription();
   const { 
     downloadPost, 
@@ -56,24 +54,6 @@ export default function PostCard({
     isDownloaded, 
     isDownloading 
   } = useSave();
-
-  const handleLike = () => {
-    const currentlyLiked = isLiked(post.id);
-    
-    toggleLike(post.id, {
-      id: post.id,
-      username: post.username,
-      displayName: post.displayName,
-      avatar: post.avatar,
-      content: post.content,
-      likes: currentlyLiked ? post.likes - 1 : post.likes + 1,
-      replies: post.replies,
-      timestamp: post.timestamp,
-      tags: post.tags,
-      voiceStyle: post.voiceStyle,
-      duration: post.duration,
-    });
-  };
 
   const handleSave = async () => {
     const isInSavedPosts = savedPosts.some(p => p.id === post.id);
@@ -211,21 +191,16 @@ export default function PostCard({
 
         {/* Actions Container - Single Row */}
         <View style={globalStyles.actionsContainer}>
-          <TouchableOpacity
-            style={globalStyles.actionButton}
-            onPress={handleLike}>
-            <Heart
+          {/* Listen Count Display - Replaces Like Button */}
+          <View style={globalStyles.actionButton}>
+            <Headphones
               size={20}
-              color={isLiked(post.id) ? colors.like : colors.textMuted}
-              fill={isLiked(post.id) ? colors.like : 'transparent'}
+              color={colors.textMuted}
             />
-            <Text style={[
-              globalStyles.actionText, 
-              isLiked(post.id) && globalStyles.actionTextActive
-            ]}>
-              {post.likes}
+            <Text style={globalStyles.actionText}>
+              {getPlayCount(post.id)}
             </Text>
-          </TouchableOpacity>
+          </View>
 
           <TouchableOpacity 
             style={globalStyles.actionButton}
@@ -420,16 +395,16 @@ export default function PostCard({
 
                     {/* Reply Actions */}
                     <View style={{ flexDirection: 'row', gap: spacing.lg }}>
-                      <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-                        <Heart size={16} color={colors.textMuted} />
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                        <Headphones size={16} color={colors.textMuted} />
                         <Text style={{ 
                           fontSize: 12, 
                           fontFamily: 'Inter-Medium', 
                           color: colors.textMuted 
                         }}>
-                          {reply.likes}
+                          {getPlayCount(reply.id)}
                         </Text>
-                      </TouchableOpacity>
+                      </View>
                       <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
                         <Share size={16} color={colors.textMuted} />
                       </TouchableOpacity>

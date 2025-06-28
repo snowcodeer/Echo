@@ -6,19 +6,72 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Settings, Volume2, Type, Shield, Bell, Palette, ArrowLeft } from 'lucide-react-native';
+import { Settings, Volume2, Type, Shield, Bell, Palette, ArrowLeft, LogOut } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTranscription } from '@/contexts/TranscriptionContext';
+import { useUser } from '@/hooks/useUser';
+import { useLike } from '@/contexts/LikeContext';
+import { usePlay } from '@/contexts/PlayContext';
+import { useSave } from '@/contexts/SaveContext';
+import { clearUserPosts } from '@/data/profile';
 import { globalStyles, colors, gradients, spacing, borderRadius, typography, getResponsiveFontSize } from '@/styles/globalStyles';
 
 export default function SettingsScreen() {
   const { transcriptionsEnabled, toggleTranscriptions } = useTranscription();
+  const { signOut } = useUser();
+  const { clearLikedData } = useLike();
+  const { clearPlayData } = usePlay();
+  const { clearSavedData } = useSave();
 
   const handleBack = () => {
     router.back();
+  };
+
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out? This will clear all your local data.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear all context data
+              await Promise.all([
+                clearLikedData(),
+                clearPlayData(),
+                clearSavedData(),
+              ]);
+              
+              // Clear user posts
+              clearUserPosts();
+              
+              // Sign out user
+              const result = await signOut();
+              
+              if (result.success) {
+                // Navigate to login screen
+                router.replace('/login');
+              } else {
+                Alert.alert('Error', result.error || 'Failed to sign out');
+              }
+            } catch (error) {
+              console.error('Sign out error:', error);
+              Alert.alert('Error', 'An unexpected error occurred during sign out');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -268,6 +321,32 @@ export default function SettingsScreen() {
               />
             </View>
           </View>
+
+          {/* Account Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <LogOut size={20} color={colors.error} />
+              <Text style={[styles.sectionTitle, { fontSize: getResponsiveFontSize(18) }]}>
+                Account
+              </Text>
+            </View>
+            
+            <TouchableOpacity 
+              style={[styles.settingCard, styles.signOutCard]}
+              onPress={handleSignOut}
+              accessibilityLabel="Sign out"
+              accessibilityRole="button">
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingTitle, styles.signOutTitle, { fontSize: getResponsiveFontSize(16) }]}>
+                  Sign Out
+                </Text>
+                <Text style={[styles.settingDescription, { fontSize: getResponsiveFontSize(14) }]}>
+                  Sign out of your account and clear all local data
+                </Text>
+              </View>
+              <LogOut size={20} color={colors.error} />
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -329,6 +408,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  signOutCard: {
+    borderColor: colors.error,
+    backgroundColor: 'rgba(220, 38, 38, 0.05)',
+  },
   settingInfo: {
     flex: 1,
     marginRight: spacing.lg,
@@ -337,6 +420,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     color: colors.textPrimary,
     marginBottom: spacing.xs,
+  },
+  signOutTitle: {
+    color: colors.error,
   },
   settingDescription: {
     fontFamily: 'Inter-Regular',

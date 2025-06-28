@@ -19,6 +19,7 @@ interface LikeContextType {
   likedPostsData: LikedPost[];
   toggleLike: (postId: string, postData: LikedPost) => void;
   isLiked: (postId: string) => boolean;
+  clearLikedData: () => void;
 }
 
 const LikeContext = createContext<LikeContextType | undefined>(undefined);
@@ -55,8 +56,19 @@ export function LikeProvider({ children }: { children: ReactNode }) {
     return likedPosts.has(postId);
   };
 
+  const clearLikedData = () => {
+    setLikedPosts(new Set());
+    setLikedPostsData([]);
+  };
+
   return (
-    <LikeContext.Provider value={{ likedPosts, likedPostsData, toggleLike, isLiked }}>
+    <LikeContext.Provider value={{ 
+      likedPosts, 
+      likedPostsData, 
+      toggleLike, 
+      isLiked, 
+      clearLikedData 
+    }}>
       {children}
     </LikeContext.Provider>
   );

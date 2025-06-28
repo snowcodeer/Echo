@@ -63,11 +63,31 @@ export function useUser() {
     }
   };
 
+  const signOut = async () => {
+    try {
+      setLoading(true);
+      // In a real app, this would invalidate tokens, clear server sessions, etc.
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Clear user state
+      setUser(null);
+      setError(null);
+      
+      return { success: true };
+    } catch (err) {
+      setError('Failed to sign out');
+      return { success: false, error: 'Sign out failed' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     user,
     loading,
     error,
     updateProfile,
+    signOut,
     isAuthenticated: !!user,
   };
 }

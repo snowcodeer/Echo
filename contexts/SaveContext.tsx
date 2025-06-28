@@ -22,6 +22,7 @@ interface SaveContextType {
   isSaved: (postId: string) => boolean;
   isDownloaded: (postId: string) => boolean;
   isDownloading: (postId: string) => boolean;
+  clearSavedData: () => Promise<void>;
 }
 
 const SaveContext = createContext<SaveContextType | undefined>(undefined);
@@ -258,6 +259,29 @@ export function SaveProvider({ children }: { children: ReactNode }) {
     console.log('Queue cleared successfully');
   };
 
+  const clearSavedData = async () => {
+    try {
+      console.log('Clearing all saved data...');
+      
+      // Clear state
+      setSavedPosts([]);
+      setCommuteQueue([]);
+      setDownloadingPosts(new Set());
+      setDownloadedPosts(new Set());
+
+      // Clear AsyncStorage
+      await Promise.all([
+        AsyncStorage.removeItem(STORAGE_KEYS.SAVED_POSTS),
+        AsyncStorage.removeItem(STORAGE_KEYS.COMMUTE_QUEUE),
+        AsyncStorage.removeItem(STORAGE_KEYS.DOWNLOADED_POSTS),
+      ]);
+      
+      console.log('All saved data cleared successfully');
+    } catch (error) {
+      console.error('Error clearing saved data:', error);
+    }
+  };
+
   const isSaved = (postId: string) => {
     const inSaved = savedPosts.some(p => p.id === postId);
     const inQueue = commuteQueue.some(p => p.id === postId);
@@ -288,6 +312,7 @@ export function SaveProvider({ children }: { children: ReactNode }) {
       isSaved,
       isDownloaded,
       isDownloading,
+      clearSavedData,
     }}>
       {children}
     </SaveContext.Provider>

@@ -20,6 +20,7 @@ interface PlayContextType {
   hasPlayed: (postId: string) => boolean;
   getTotalPlayTime: () => number;
   getUniqueListeners: (postId: string) => number;
+  clearPlayData: () => Promise<void>;
 }
 
 const PlayContext = createContext<PlayContextType | undefined>(undefined);
@@ -142,6 +143,25 @@ export function PlayProvider({ children }: { children: ReactNode }) {
     return uniqueUsers.size;
   };
 
+  const clearPlayData = async () => {
+    try {
+      // Clear state
+      setCurrentlyPlaying(null);
+      setPlayedPosts(new Set());
+      setPlayCounts({});
+      setPlayHistory([]);
+
+      // Clear AsyncStorage
+      await Promise.all([
+        AsyncStorage.removeItem(STORAGE_KEYS.PLAY_COUNTS),
+        AsyncStorage.removeItem(STORAGE_KEYS.PLAYED_POSTS),
+        AsyncStorage.removeItem(STORAGE_KEYS.PLAY_HISTORY),
+      ]);
+    } catch (error) {
+      console.error('Error clearing play data:', error);
+    }
+  };
+
   return (
     <PlayContext.Provider value={{
       currentlyPlaying,
@@ -154,6 +174,7 @@ export function PlayProvider({ children }: { children: ReactNode }) {
       hasPlayed,
       getTotalPlayTime,
       getUniqueListeners,
+      clearPlayData,
     }}>
       {children}
     </PlayContext.Provider>

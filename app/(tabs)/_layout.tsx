@@ -1,15 +1,25 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Platform, View } from 'react-native';
+import { Platform, View, Text, StyleSheet } from 'react-native';
 import { Chrome as Home, Bookmark, Mic, Compass, User } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { router } from 'expo-router';
 import BoltBadge from '@/components/BoltBadge';
+import { colors, spacing } from '@/styles/globalStyles';
 
 export default function TabLayout() {
   const { isAuthenticated, loading } = useAuth();
 
-  // Redirect to login if not authenticated
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
+  // Redirect to login if not authenticated (only after loading is complete)
   React.useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.replace('/login');
@@ -108,3 +118,17 @@ export default function TabLayout() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  loadingText: {
+    color: colors.textMuted,
+    fontFamily: 'Inter-Medium',
+    fontSize: 16,
+  },
+});

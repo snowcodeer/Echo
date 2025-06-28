@@ -15,7 +15,7 @@ import { PlayProvider } from '@/contexts/PlayContext';
 import { SaveProvider } from '@/contexts/SaveContext';
 import { TranscriptionProvider } from '@/contexts/TranscriptionContext';
 import { AuthProvider } from '@/contexts/AuthContext';
-import AuthNavigator from '@/components/AuthNavigator';
+import AuthNavigator from '../components/AuthNavigator';
 
 SplashScreen.preventAutoHideAsync();
 

@@ -91,6 +91,32 @@ export default function SettingsScreen() {
         </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* Account Section - Moved to top */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <LogOut size={20} color={colors.error} />
+              <Text style={[styles.sectionTitle, { fontSize: getResponsiveFontSize(18) }]}>
+                Account
+              </Text>
+            </View>
+            
+            <TouchableOpacity 
+              style={[styles.settingCard, styles.signOutCard]}
+              onPress={handleSignOut}
+              accessibilityLabel="Sign out"
+              accessibilityRole="button">
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingTitle, styles.signOutTitle, { fontSize: getResponsiveFontSize(16) }]}>
+                  Sign Out
+                </Text>
+                <Text style={[styles.settingDescription, { fontSize: getResponsiveFontSize(14) }]}>
+                  Sign out of your account and clear all local data
+                </Text>
+              </View>
+              <LogOut size={20} color={colors.error} />
+            </TouchableOpacity>
+          </View>
+
           {/* Transcription Settings Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -320,32 +346,6 @@ export default function SettingsScreen() {
                 accessibilityRole="switch"
               />
             </View>
-          </View>
-
-          {/* Account Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <LogOut size={20} color={colors.error} />
-              <Text style={[styles.sectionTitle, { fontSize: getResponsiveFontSize(18) }]}>
-                Account
-              </Text>
-            </View>
-            
-            <TouchableOpacity 
-              style={[styles.settingCard, styles.signOutCard]}
-              onPress={handleSignOut}
-              accessibilityLabel="Sign out"
-              accessibilityRole="button">
-              <View style={styles.settingInfo}>
-                <Text style={[styles.settingTitle, styles.signOutTitle, { fontSize: getResponsiveFontSize(16) }]}>
-                  Sign Out
-                </Text>
-                <Text style={[styles.settingDescription, { fontSize: getResponsiveFontSize(14) }]}>
-                  Sign out of your account and clear all local data
-                </Text>
-              </View>
-              <LogOut size={20} color={colors.error} />
-            </TouchableOpacity>
           </View>
         </ScrollView>
       </SafeAreaView>

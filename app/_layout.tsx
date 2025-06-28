@@ -13,6 +13,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { LikeProvider } from '@/contexts/LikeContext';
 import { PlayProvider } from '@/contexts/PlayContext';
 import { SaveProvider } from '@/contexts/SaveContext';
+import { TranscriptionProvider } from '@/contexts/TranscriptionContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -37,16 +38,18 @@ export default function RootLayout() {
   }
 
   return (
-    <SaveProvider>
-      <PlayProvider>
-        <LikeProvider>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="light" />
-        </LikeProvider>
-      </PlayProvider>
-    </SaveProvider>
+    <TranscriptionProvider>
+      <SaveProvider>
+        <PlayProvider>
+          <LikeProvider>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="light" />
+          </LikeProvider>
+        </PlayProvider>
+      </SaveProvider>
+    </TranscriptionProvider>
   );
 }

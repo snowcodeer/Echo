@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Platform, View } from 'react-native';
-import { Chrome as Home, Bookmark, Mic, Compass, User } from 'lucide-react-native';
+import { Chrome as Home, Bookmark, Mic, Compass, User, Settings } from 'lucide-react-native';
 import BoltBadge from '@/components/BoltBadge';
 
 export default function TabLayout() {
@@ -81,6 +81,15 @@ export default function TabLayout() {
             title: 'Profile',
             tabBarIcon: ({ size, color }) => (
               <User size={22} color={color} strokeWidth={2} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: 'Settings',
+            tabBarIcon: ({ size, color }) => (
+              <Settings size={22} color={color} strokeWidth={2} />
             ),
           }}
         />

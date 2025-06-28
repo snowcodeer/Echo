@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Settings, MapPin, Shield, CreditCard as Edit3, Mic, Users } from 'lucide-react-native';
+import { Settings, MapPin, CreditCard as Edit3, Mic, Users, Check } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { globalStyles, colors, gradients, spacing, borderRadius, getResponsiveFontSize } from '@/styles/globalStyles';
 
@@ -101,18 +101,20 @@ export default function ProfileScreen() {
                 source={{ uri: mockUser.avatar }} 
                 style={styles.avatar}
               />
-              {mockUser.isVerified && (
-                <View style={styles.verifiedBadge}>
-                  <Shield size={16} color={colors.textPrimary} fill={colors.accent} />
-                </View>
-              )}
             </View>
 
             {/* User Info */}
             <View style={styles.userInfo}>
-              <Text style={[styles.displayName, { fontSize: getResponsiveFontSize(24) }]}>
-                {mockUser.displayName}
-              </Text>
+              <View style={styles.displayNameAndVerifiedContainer}>
+                <Text style={[styles.displayName, { fontSize: getResponsiveFontSize(24) }]}>
+                  {mockUser.displayName}
+                </Text>
+                {mockUser.isVerified && (
+                  <View style={styles.verifiedCheckmark}>
+                    <Check size={16} color={colors.textPrimary} />
+                  </View>
+                )}
+              </View>
               <Text style={[styles.username, { fontSize: getResponsiveFontSize(16) }]}>
                 {mockUser.username}
               </Text>
@@ -238,7 +240,6 @@ const styles = StyleSheet.create({
   avatarContainer: {
     alignItems: 'center',
     marginBottom: spacing.lg,
-    position: 'relative',
   },
   avatar: {
     width: 120,
@@ -247,33 +248,32 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: colors.accent,
   },
-  verifiedBadge: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: colors.surface,
-  },
   userInfo: {
     alignItems: 'center',
     marginBottom: spacing.lg,
   },
+  displayNameAndVerifiedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
   displayName: {
     fontFamily: 'Inter-Bold',
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
     textAlign: 'center',
+  },
+  verifiedCheckmark: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   username: {
     fontFamily: 'Inter-Medium',
     color: colors.accent,
-    marginBottom: spacing.sm,
   },
   bioContainer: {
     marginBottom: spacing.lg,

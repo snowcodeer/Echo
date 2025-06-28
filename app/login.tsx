@@ -9,12 +9,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Eye, EyeOff, LogIn } from 'lucide-react-native';
+import { Eye, EyeOff, LogIn, Mic, Volume2, Users } from 'lucide-react-native';
 import { globalStyles, colors, gradients, spacing, borderRadius, getResponsiveFontSize } from '@/styles/globalStyles';
 
 const API_BASE_URL = 'https://echo-api-90zm.onrender.com';
@@ -29,56 +30,46 @@ const storeToken = async (token: string) => {
   }
 };
 
-// Function to get stored token
-const getToken = async () => {
-  try {
-    const token = await AsyncStorage.getItem('authToken');
-    return token;
-  } catch (error) {
-    console.error('Error getting token:', error);
-    return null;
-  }
-};
-
-// Function to test the token with /api/auth/users endpoint
-const testTokenWithUsers = async (token: string) => {
-  try {
-    console.log('Testing token with /api/auth/users endpoint...');
-    const response = await fetch(API_BASE_URL + '/api/auth/users', {
-      method: 'GET',
-      headers: {
-        'accept': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    const result = await response.json();
-    console.log('Users endpoint response:', result);
-    console.log('Users endpoint status:', response.status);
-
-    return { success: response.ok, data: result, status: response.status };
-  } catch (error) {
-    console.error('Error testing token:', error);
-    return { success: false, error: error.message };
-  }
-};
-
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
+  
+  // Animation values
+  const fadeAnim = new Animated.Value(0);
+  const slideAnim = new Animated.Value(50);
+
+  React.useEffect(() => {
+    // Animate in the content
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const validateForm = () => {
     const newErrors: { username?: string; password?: string } = {};
 
     if (!username.trim()) {
       newErrors.username = 'Username is required';
+    } else if (username.trim().length < 3) {
+      newErrors.username = 'Username must be at least 3 characters';
     }
 
     if (!password.trim()) {
       newErrors.password = 'Password is required';
+    } else if (password.trim().length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
     }
 
     setErrors(newErrors);
@@ -91,7 +82,6 @@ export default function LoginScreen() {
     setIsLoading(true);
     
     try {
-      // Prepare login data
       const loginData = {
         username: username.trim(),
         password: password.trim(),
@@ -100,11 +90,9 @@ export default function LoginScreen() {
         device: Platform.OS
       };
 
-      // Use the specific login endpoint
-      const endpoint = '/api/auth/login';
-      console.log(`Making login request to: ${API_BASE_URL}${endpoint}`);
+      console.log(`Making login request to: ${API_BASE_URL}/api/auth/login`);
       
-      const response = await fetch(API_BASE_URL + endpoint, {
+      const response = await fetch(API_BASE_URL + '/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -117,73 +105,58 @@ export default function LoginScreen() {
       try {
         result = await response.json();
       } catch (jsonError) {
-        // If response isn't JSON, treat as text
         const textResult = await response.text();
         result = { message: textResult };
       }
 
       console.log('API Response:', result);
       console.log('Status:', response.status);
-      console.log('Endpoint used:', endpoint);
 
       if (response.ok) {
-        // Login successful - extract and store token
-        console.log('Login successful! Full response:', result);
+        console.log('Login successful!');
         
-        // Extract token from response (try different common field names)
         const token = result.token || result.access_token || result.accessToken || result.authToken;
         
-        // Store the token
-        await storeToken(token);
-        
-        // Test the token with users endpoint
-        const testResult = await testTokenWithUsers(token);
-        
-        Alert.alert(
-          'Login Successful!', 
-          `Token received and stored!\n\nToken: ${token.substring(0, 20)}...\n\nUsers endpoint test: ${testResult.success ? 'SUCCESS' : 'FAILED'}\n\nUsers data: ${JSON.stringify(testResult.data, null, 2)}`,
-          [
-            {
-              text: 'Continue',
-              onPress: () => {
-                // Navigate to main app
-                router.replace('/(tabs)');
+        if (token) {
+          await storeToken(token);
+          
+          // Show success and navigate
+          Alert.alert(
+            'Welcome to Echo!', 
+            'Login successful. Get ready to share your voice with the world.',
+            [
+              {
+                text: 'Continue',
+                onPress: () => {
+                  router.replace('/(tabs)');
+                }
               }
-            }
-          ]
-        );
+            ]
+          );
+        } else {
+          Alert.alert('Login Error', 'No authentication token received from server.');
+        }
       } else if (response.status === 401) {
-        // Unauthorized - Invalid credentials
         Alert.alert(
           'Invalid Credentials',
-          'The username or password you entered is incorrect. Please check your credentials and try again.',
-          [
-            {
-              text: 'Try Again',
-              style: 'default'
-            }
-          ]
+          'The username or password you entered is incorrect. Please check your credentials and try again.'
         );
       } else if (response.status === 400) {
-        // Bad Request - Usually validation errors
         Alert.alert(
           'Invalid Request',
-          result.message || 'The request was invalid. Please check your input and try again.'
+          result.message || 'Please check your input and try again.'
         );
       } else if (response.status === 403) {
-        // Forbidden - Account might be disabled
         Alert.alert(
           'Access Forbidden',
           'Your account may be disabled or you do not have permission to access this service.'
         );
       } else if (response.status === 500) {
-        // Server Error
         Alert.alert(
           'Server Error',
           'Something went wrong on our end. Please try again later.'
         );
       } else {
-        // Other errors
         Alert.alert(
           'Login Failed', 
           result.message || result.error || `Server returned status: ${response.status}`
@@ -193,7 +166,6 @@ export default function LoginScreen() {
     } catch (error) {
       console.error('Login error:', error);
       
-      // Check if it's a network error
       if (error.message.includes('Network request failed') || error.message.includes('fetch')) {
         Alert.alert(
           'Connection Error', 
@@ -210,20 +182,26 @@ export default function LoginScreen() {
     }
   };
 
-  // Test API connection on component mount
-  React.useEffect(() => {
-    const testAPIConnection = async () => {
-      try {
-        const response = await fetch(API_BASE_URL);
-        const result = await response.json();
-        console.log('API Status Check:', result);
-      } catch (error) {
-        console.error('API connection test failed:', error);
-      }
-    };
-
-    testAPIConnection();
-  }, []);
+  const handleDemoLogin = () => {
+    Alert.alert(
+      'Demo Mode',
+      'This will log you in with demo credentials to explore the app.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Continue',
+          onPress: async () => {
+            // Store a demo token
+            await storeToken('demo_token_' + Date.now());
+            router.replace('/(tabs)');
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <LinearGradient colors={gradients.background} style={globalStyles.container}>
@@ -237,15 +215,47 @@ export default function LoginScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled">
             
-            <View style={styles.container}>
-              {/* Header */}
-              <View style={styles.header}>
-                <Text style={[styles.title, { fontSize: getResponsiveFontSize(32) }]}>
-                  Welcome to Echo
+            <Animated.View 
+              style={[
+                styles.container,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }]
+                }
+              ]}>
+              
+              {/* Hero Section */}
+              <View style={styles.hero}>
+                <View style={styles.logoContainer}>
+                  <LinearGradient
+                    colors={gradients.primary}
+                    style={styles.logoGradient}>
+                    <Mic size={40} color={colors.textPrimary} strokeWidth={2} />
+                  </LinearGradient>
+                </View>
+                
+                <Text style={[styles.title, { fontSize: getResponsiveFontSize(36) }]}>
+                  Echo
                 </Text>
-                <Text style={[styles.subtitle, { fontSize: getResponsiveFontSize(16) }]}>
+                <Text style={[styles.subtitle, { fontSize: getResponsiveFontSize(18) }]}>
                   Share your voice with the world
                 </Text>
+                
+                {/* Feature highlights */}
+                <View style={styles.features}>
+                  <View style={styles.feature}>
+                    <Volume2 size={16} color={colors.accent} />
+                    <Text style={[styles.featureText, { fontSize: getResponsiveFontSize(14) }]}>
+                      Voice-first social
+                    </Text>
+                  </View>
+                  <View style={styles.feature}>
+                    <Users size={16} color={colors.accent} />
+                    <Text style={[styles.featureText, { fontSize: getResponsiveFontSize(14) }]}>
+                      Connect authentically
+                    </Text>
+                  </View>
+                </View>
               </View>
 
               {/* Login Form */}
@@ -350,38 +360,25 @@ export default function LoginScreen() {
                   </LinearGradient>
                 </TouchableOpacity>
 
-                {/* API Info & Demo Credentials */}
-                <View style={styles.demoCredentials}>
-                  <Text style={[styles.demoTitle, { fontSize: getResponsiveFontSize(14) }]}>
-                    API Integration
+                {/* Demo Mode Button */}
+                <TouchableOpacity
+                  style={styles.demoButton}
+                  onPress={handleDemoLogin}
+                  accessibilityLabel="Try demo mode"
+                  accessibilityRole="button">
+                  <Text style={[styles.demoButtonText, { fontSize: getResponsiveFontSize(14) }]}>
+                    Try Demo Mode
                   </Text>
-                  <Text style={[styles.demoText, { fontSize: getResponsiveFontSize(12) }]}>
-                    Endpoint: {API_BASE_URL}/api/auth/login
-                  </Text>
-                  <Text style={[styles.demoText, { fontSize: getResponsiveFontSize(12) }]}>
-                    Token will be stored and tested with /api/auth/users
+                </TouchableOpacity>
+
+                {/* API Info */}
+                <View style={styles.apiInfo}>
+                  <Text style={[styles.apiText, { fontSize: getResponsiveFontSize(12) }]}>
+                    Connected to: {API_BASE_URL}
                   </Text>
                 </View>
-
-                {/* Test Token Button */}
-                <TouchableOpacity
-                  style={styles.testTokenButton}
-                  onPress={async () => {
-                    const storedToken = await getToken();
-                    if (storedToken) {
-                      const testResult = await testTokenWithUsers(storedToken);
-                      Alert.alert(
-                        'Token Test Result',
-                        `Status: ${testResult.success ? 'SUCCESS' : 'FAILED'}\n\nResponse: ${JSON.stringify(testResult.data, null, 2)}`
-                      );
-                    } else {
-                      Alert.alert('No Token', 'No stored token found. Please login first.');
-                    }
-                  }}>
-                  <Text style={styles.testTokenText}>Test Stored Token</Text>
-                </TouchableOpacity>
               </View>
-            </View>
+            </Animated.View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -396,6 +393,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
+    minHeight: '100%',
   },
   container: {
     flex: 1,
@@ -403,21 +401,58 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xxxxl,
   },
-  header: {
+  hero: {
     alignItems: 'center',
     marginBottom: spacing.xxxxl,
+  },
+  logoContainer: {
+    marginBottom: spacing.xl,
+  },
+  logoGradient: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
   title: {
     fontFamily: 'Inter-Bold',
     color: colors.textPrimary,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     textAlign: 'center',
+    letterSpacing: -1,
   },
   subtitle: {
     fontFamily: 'Inter-Regular',
     color: colors.textMuted,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 26,
+    marginBottom: spacing.xl,
+  },
+  features: {
+    flexDirection: 'row',
+    gap: spacing.xl,
+    marginTop: spacing.lg,
+  },
+  feature: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.xxl,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  featureText: {
+    fontFamily: 'Inter-Medium',
+    color: colors.accent,
   },
   form: {
     width: '100%',
@@ -443,6 +478,7 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: colors.error,
+    backgroundColor: 'rgba(220, 38, 38, 0.05)',
   },
   passwordContainer: {
     position: 'relative',
@@ -474,12 +510,19 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     marginTop: spacing.lg,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
     borderRadius: borderRadius.md,
     overflow: 'hidden',
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   loginButtonDisabled: {
     opacity: 0.6,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   loginButtonGradient: {
     flexDirection: 'row',
@@ -492,36 +535,29 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     color: colors.textPrimary,
   },
-  demoCredentials: {
+  demoButton: {
     backgroundColor: colors.surfaceSecondary,
-    padding: spacing.lg,
     borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.borderSecondary,
-    alignItems: 'center',
+    marginBottom: spacing.xl,
   },
-  demoTitle: {
+  demoButtonText: {
     fontFamily: 'Inter-SemiBold',
     color: colors.accent,
-    marginBottom: spacing.sm,
   },
-  demoText: {
+  apiInfo: {
+    alignItems: 'center',
+    paddingTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  apiText: {
     fontFamily: 'Inter-Regular',
-    color: colors.textMuted,
-    marginBottom: 2,
-  },
-  testTokenButton: {
-    marginTop: spacing.md,
-    backgroundColor: colors.surfaceSecondary,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSecondary,
-    alignItems: 'center',
-  },
-  testTokenText: {
-    fontFamily: 'Inter-SemiBold',
-    color: colors.accent,
-    fontSize: 14,
+    color: colors.textSubtle,
+    textAlign: 'center',
   },
 });

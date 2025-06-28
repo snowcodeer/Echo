@@ -67,8 +67,8 @@ export default function ConvAiDOMComponent({
   return (
     <Pressable
       style={[
-        styles.callButton,
-        conversation.status === "connected" && styles.callButtonActive,
+        styles.micButton,
+        conversation.status === "connected" && styles.micButtonActive,
       ]}
       onPress={
         conversation.status === "disconnected"
@@ -76,57 +76,39 @@ export default function ConvAiDOMComponent({
           : stopConversation
       }
     >
-      <View
-        style={[
-          styles.buttonInner,
-          conversation.status === "connected" && styles.buttonInnerActive,
-        ]}
-      >
-        <Mic
-          size={32}
-          color="#E2E8F0"
-          strokeWidth={1.5}
-          style={styles.buttonIcon}
-        />
-      </View>
+      <Mic
+        size={24}
+        color={conversation.status === "connected" ? "#FFFFFF" : "#8B5CF6"}
+        strokeWidth={2}
+      />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  callButton: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  micButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(139, 92, 246, 0.1)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "rgba(139, 92, 246, 0.3)",
+    // Smooth transition for state changes
+    transition: "all 0.2s ease-in-out",
   },
-  callButtonActive: {
-    backgroundColor: "rgba(239, 68, 68, 0.2)",
-  },
-  buttonInner: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#3B82F6",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#3B82F6",
+  micButtonActive: {
+    backgroundColor: "#8B5CF6",
+    borderColor: "#8B5CF6",
+    // Add subtle pulse effect when active
+    shadowColor: "#8B5CF6",
     shadowOffset: {
       width: 0,
       height: 0,
     },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 5,
-  },
-  buttonInnerActive: {
-    backgroundColor: "#EF4444",
-    shadowColor: "#EF4444",
-  },
-  buttonIcon: {
-    transform: [{ translateY: 2 }],
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
   },
 });

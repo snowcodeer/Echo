@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import BoltBadge from '@/components/BoltBadge';
 import ConvAiDOMComponent from '@/conversational-ai/ConvAI';
 import { Message } from '@/components/ChatMessage';
+import { colors, spacing, borderRadius, shadows } from '@/styles/globalStyles';
 
 export default function TabLayout() {
   const { isAuthenticated, loading } = useAuth();
@@ -111,7 +112,7 @@ export default function TabLayout() {
         />
       </Tabs>
       
-      {/* AI Assistant - positioned in top right corner */}
+      {/* AI Assistant - positioned in top right corner with app-consistent styling */}
       <View style={styles.aiAssistantContainer}>
         <View style={styles.aiAssistantWrapper}>
           <ConvAiDOMComponent
@@ -132,26 +133,28 @@ const styles = StyleSheet.create({
   aiAssistantContainer: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 60 : 40,
-    right: 20,
+    right: spacing.xl,
     zIndex: 1000,
   },
   aiAssistantWrapper: {
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    borderRadius: 40,
-    padding: 8,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.round,
+    padding: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
-    shadowColor: '#8B5CF6',
+    borderColor: colors.border,
+    ...shadows.medium,
+    // Add subtle glow effect consistent with app's accent color
+    shadowColor: colors.accent,
     shadowOffset: {
       width: 0,
       height: 0,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
   },
   aiComponent: {
-    width: 60,
-    height: 60,
+    width: 48,
+    height: 48,
   },
 });

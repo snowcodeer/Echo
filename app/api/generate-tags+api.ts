@@ -33,19 +33,18 @@ function generateFallbackTags(text: string): string[] {
   const lowerText = text.toLowerCase();
   const fallbackTags: string[] = [];
   
-  // Keyword-based tag generation - updated to include success
+  // Keyword-based tag generation
   const tagMap = {
     'morning': ['morning', 'coffee', 'sunrise', 'wake'],
-    'motivation': ['motivation', 'inspire', 'goal', 'achieve'],
-    'success': ['success', 'achievement', 'win', 'accomplish', 'victory', 'breakthrough', 'progress', 'growth', 'triumph'],
+    'motivation': ['motivation', 'inspire', 'success', 'goal', 'achieve'],
+    'deepthoughts': ['thought', 'philosophy', 'wonder', 'think', 'ponder'],
     'confession': ['confession', 'secret', 'admit', 'truth'],
     'energy': ['energy', 'positive', 'vibe', 'excited', 'happy'],
     'relationshipadvice': ['relationship', 'love', 'dating', 'partner', 'heart'],
     'mindfulness': ['mindful', 'peace', 'calm', 'meditation', 'zen'],
     'growth': ['growth', 'learn', 'improve', 'better', 'change'],
     'wisdom': ['wisdom', 'advice', 'experience', 'lesson'],
-    'storytelling': ['story', 'tale', 'remember', 'once', 'happened'],
-    'philosophy': ['philosophy', 'think', 'ponder', 'wonder', 'existence']
+    'storytelling': ['story', 'tale', 'remember', 'once', 'happened']
   };
 
   // Check for keyword matches

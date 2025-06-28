@@ -60,7 +60,6 @@ export default function LoginScreen() {
       const response = await fetch(API_BASE_URL + endpoint, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },

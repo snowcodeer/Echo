@@ -30,14 +30,10 @@ export default function LoginScreen() {
 
     if (!username.trim()) {
       newErrors.username = 'Username is required';
-    } else if (username.length < 3) {
-      newErrors.username = 'Username must be at least 3 characters';
     }
 
     if (!password.trim()) {
       newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
     }
 
     setErrors(newErrors);
@@ -283,7 +279,7 @@ export default function LoginScreen() {
                     Endpoint: {API_BASE_URL}/api/auth/login
                   </Text>
                   <Text style={[styles.demoText, { fontSize: getResponsiveFontSize(12) }]}>
-                    Try any username/password (6+ chars)
+                    Try any username/password
                   </Text>
                 </View>
               </View>

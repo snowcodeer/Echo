@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Settings, MapPin, Link as LinkIcon, Calendar, Shield, CreditCard as Edit3, Mail, MailCheck, Mic, Users } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { globalStyles, colors, gradients, spacing, borderRadius, getResponsiveFontSize } from '@/styles/globalStyles';
 
 // Mock user data
@@ -79,7 +80,7 @@ export default function ProfileScreen() {
   };
 
   const handleSettings = () => {
-    Alert.alert('Settings', 'Settings functionality would be implemented here');
+    router.push('/settings');
   };
 
   const shouldShowBio = mockUser.bio && mockUser.bio.length > 0;
@@ -104,12 +105,16 @@ export default function ProfileScreen() {
                 <>
                   <TouchableOpacity 
                     style={styles.actionButton}
-                    onPress={handleEditProfile}>
+                    onPress={handleEditProfile}
+                    accessibilityLabel="Edit profile"
+                    accessibilityRole="button">
                     <Edit3 size={20} color={colors.textMuted} />
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.actionButton}
-                    onPress={handleSettings}>
+                    onPress={handleSettings}
+                    accessibilityLabel="Settings"
+                    accessibilityRole="button">
                     <Settings size={20} color={colors.textMuted} />
                   </TouchableOpacity>
                 </>

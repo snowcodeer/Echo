@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Eye, EyeOff, LogIn } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { globalStyles, colors, gradients, spacing, borderRadius, getResponsiveFontSize } from '@/styles/globalStyles';
 
 const API_BASE_URL = 'https://echo-api-90zm.onrender.com';
@@ -46,13 +47,10 @@ export default function LoginScreen() {
     setIsLoading(true);
     
     try {
-      // Prepare login data
+      // Prepare login data matching the curl command structure
       const loginData = {
         username: username.trim(),
         password: password.trim(),
-        timestamp: new Date().toISOString(),
-        platform: 'react-native',
-        device: Platform.OS
       };
 
       // Use the specific login endpoint
@@ -79,35 +77,45 @@ export default function LoginScreen() {
 
       console.log('API Response:', result);
       console.log('Status:', response.status);
-      console.log('Endpoint used:', endpoint);
 
       if (response.ok) {
-        // Login successful
-        
-        // Store authentication data if provided
-        // You might want to use AsyncStorage here
-        // await AsyncStorage.setItem('authToken', result.token);
-        // await AsyncStorage.setItem('userData', JSON.stringify(result.user));
-        
-        Alert.alert(
-          'Login Successful!', 
-          `Connected to API endpoint: ${endpoint}\n\nResponse: ${JSON.stringify(result, null, 2)}`,
-          [
-            {
-              text: 'Continue',
-              onPress: () => {
-                // Navigate to main app
-                router.replace('/(tabs)');
+        // Login successful - extract and store the token
+        const token = result.token || result.access_token || result.accessToken;
+
+        if (token) {
+          // Store the token in AsyncStorage
+          await AsyncStorage.setItem('userToken', token);
+          console.log('Token stored successfully:', token);
+
+          // Also store user data if provided
+          if (result.user) {
+            await AsyncStorage.setItem('userData', JSON.stringify(result.user));
+          }
+
+          Alert.alert(
+            'Login Successful!', 
+            `Welcome back! You are now logged in.`,
+            [
+              {
+                text: 'Continue',
+                onPress: () => {
+                  // Navigate to main app
+                  router.replace('/(tabs)');
+                }
               }
-            }
-          ]
-        );
+            ]
+          );
+        } else {
+          console.warn('Login successful, but no token received in response.');
+          Alert.alert(
+            'Login Issue',
+            'Login was successful but no authentication token was received. Please try again.'
+          );
+        }
       } else {
         // Login failed
-        Alert.alert(
-          'Login Failed', 
-          result.message || result.error || `Server returned status: ${response.status}`
-        );
+        const errorMessage = result.message || result.error || `Server returned status: ${response.status}`;
+        Alert.alert('Login Failed', errorMessage);
       }
 
     } catch (error) {
@@ -135,8 +143,7 @@ export default function LoginScreen() {
     const testAPIConnection = async () => {
       try {
         const response = await fetch(API_BASE_URL);
-        const result = await response.json();
-        console.log('API Status Check:', result);
+        console.log('API connection test successful');
       } catch (error) {
         console.error('API connection test failed:', error);
       }
@@ -279,7 +286,7 @@ export default function LoginScreen() {
                     Endpoint: {API_BASE_URL}/api/auth/login
                   </Text>
                   <Text style={[styles.demoText, { fontSize: getResponsiveFontSize(12) }]}>
-                    Try any username/password
+                    Try: username "nat", password "1963"
                   </Text>
                 </View>
               </View>

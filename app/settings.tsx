@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Settings, Volume2, Type, Shield, Bell, Palette, ArrowLeft, LogOut } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTranscription } from '@/contexts/TranscriptionContext';
-import { useUser } from '@/hooks/useUser';
+import { useAuth } from '@/hooks/useAuth';
 import { usePlay } from '@/contexts/PlayContext';
 import { useSave } from '@/contexts/SaveContext';
 import { clearUserPosts } from '@/data/profile';
@@ -21,7 +21,7 @@ import { globalStyles, colors, gradients, spacing, borderRadius, typography, get
 
 export default function SettingsScreen() {
   const { transcriptionsEnabled, toggleTranscriptions } = useTranscription();
-  const { signOut } = useUser();
+  const { signOut } = useAuth();
   const { clearPlayData } = usePlay();
   const { clearSavedData } = useSave();
 

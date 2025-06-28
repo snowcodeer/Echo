@@ -17,6 +17,7 @@ import { Audio } from 'expo-av';
 import VoiceRecorder from '@/components/VoiceRecorder';
 import VoiceStylePicker from '@/components/VoiceStylePicker';
 import { Square, Play, Pause, Send, Type, X, Mic } from 'lucide-react-native';
+import { addUserPost } from '@/data/profile';
 import { globalStyles, colors, gradients, spacing, borderRadius } from '@/styles/globalStyles';
 
 const { width } = Dimensions.get('window');
@@ -48,7 +49,26 @@ export default function PostScreen() {
   const generateTags = async (text: string) => {
     setIsGeneratingTags(true);
     try {
-      // Fallback to local tag generation only
+      // Try to use the API route first
+      try {
+        const response = await fetch('/api/generate-tags', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ text }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setGeneratedTags(data.tags.slice(0, 3)); // Limit to 3 tags
+          return;
+        }
+      } catch (apiError) {
+        console.warn('API route failed, using fallback tag generation');
+      }
+
+      // Fallback to local tag generation
       const mockTags = [];
       const lowerText = text.toLowerCase();
       
@@ -98,22 +118,48 @@ export default function PostScreen() {
     // Generate tags first
     await generateTags(textContent);
     
-    // Post the content
+    // Create the post
     setIsPosting(true);
-    setTimeout(() => {
-      setIsPosting(false);
-      setTextModeVisible(false);
-      setTextContent('');
-      setGeneratedTags([]);
-      Alert.alert('Success!', 'Your text has been posted to the feed.', [
-        {
-          text: 'OK',
-          onPress: () => {
-            setSelectedVoiceStyle('original');
+    
+    try {
+      // Create a new user post
+      const newPost = addUserPost({
+        username: '@EchoHQ',
+        displayName: 'EchoHQ',
+        avatar: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
+        audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav', // Placeholder audio
+        duration: Math.floor(textContent.length / 10) + 15, // Estimate duration based on text length
+        voiceStyle: selectedVoiceStyle === 'original' ? 'Original' : selectedVoiceStyle,
+        likes: 0,
+        replies: 0,
+        timestamp: 'now',
+        isLiked: false,
+        tags: generatedTags,
+        content: textContent,
+        isUserPost: true,
+        createdVia: 'text-to-speech',
+        originalText: textContent,
+      });
+
+      // Simulate posting delay
+      setTimeout(() => {
+        setIsPosting(false);
+        setTextModeVisible(false);
+        setTextContent('');
+        setGeneratedTags([]);
+        Alert.alert('Success!', 'Your text has been converted to speech and posted to your echoes.', [
+          {
+            text: 'OK',
+            onPress: () => {
+              setSelectedVoiceStyle('original');
+            },
           },
-        },
-      ]);
-    }, 1500);
+        ]);
+      }, 1500);
+    } catch (error) {
+      setIsPosting(false);
+      Alert.alert('Error', 'Failed to create post. Please try again.');
+    }
   };
 
   const startRecording = async () => {
@@ -224,16 +270,39 @@ export default function PostScreen() {
   const postRecording = async () => {
     setIsPosting(true);
     
-    // Simulate posting with voice style processing
-    setTimeout(() => {
+    try {
+      // Create a new user post for voice recording
+      const newPost = addUserPost({
+        username: '@EchoHQ',
+        displayName: 'EchoHQ',
+        avatar: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
+        audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav', // In a real app, this would be the recorded audio URL
+        duration: recordingDuration,
+        voiceStyle: selectedVoiceStyle === 'original' ? 'Original' : selectedVoiceStyle,
+        likes: 0,
+        replies: 0,
+        timestamp: 'now',
+        isLiked: false,
+        tags: ['voice', 'original', 'authentic'], // Default tags for voice recordings
+        content: 'Voice recording shared via Echo', // Placeholder content
+        isUserPost: true,
+        createdVia: 'voice',
+      });
+
+      // Simulate posting with voice style processing
+      setTimeout(() => {
+        setIsPosting(false);
+        Alert.alert('Success!', 'Your voice echo has been posted to your echoes.', [
+          {
+            text: 'OK',
+            onPress: resetRecording,
+          },
+        ]);
+      }, 2000);
+    } catch (error) {
       setIsPosting(false);
-      Alert.alert('Success!', 'Your voice echo has been posted to the feed.', [
-        {
-          text: 'OK',
-          onPress: resetRecording,
-        },
-      ]);
-    }, 2000);
+      Alert.alert('Error', 'Failed to create post. Please try again.');
+    }
   };
 
   const formatDuration = (seconds: number) => {
@@ -352,7 +421,7 @@ export default function PostScreen() {
           <LinearGradient colors={gradients.background} style={globalStyles.container}>
             <SafeAreaView style={globalStyles.safeArea}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Text Post</Text>
+                <Text style={styles.modalTitle}>Text to Speech</Text>
                 <TouchableOpacity
                   onPress={() => setTextModeVisible(false)}
                   style={styles.closeButton}>

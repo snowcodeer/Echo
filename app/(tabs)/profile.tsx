@@ -12,6 +12,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Settings, MapPin, CreditCard as Edit3, Mic, Users, Check } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { getEchoHQPosts } from '@/data/postsDatabase';
+import { useLike } from '@/contexts/LikeContext';
+import { useSave } from '@/contexts/SaveContext';
 import { globalStyles, colors, gradients, spacing, borderRadius, getResponsiveFontSize } from '@/styles/globalStyles';
 
 // Mock user data
@@ -33,15 +36,26 @@ const mockUser = {
   },
 };
 
-// Mock activity data
-const mockActivity = {
-  userEchoes: 42,
-  friends: 89,
-};
-
 export default function ProfileScreen() {
   const [bioExpanded, setBioExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState('echoes');
+  const [userEchoCount, setUserEchoCount] = useState(0);
+  const [friendsCount, setFriendsCount] = useState(0);
+  
+  const { likedPostsData } = useLike();
+  const { savedPosts } = useSave();
+
+  // Calculate actual user activity counts
+  useEffect(() => {
+    // Get actual EchoHQ posts count
+    const echoHQPosts = getEchoHQPosts();
+    setUserEchoCount(echoHQPosts.length);
+    
+    // Mock friends count - in a real app this would come from a friends API
+    // For now, we'll use a realistic number based on the user's activity
+    const mockFriendsCount = Math.floor(savedPosts.length * 2.5 + likedPostsData.length * 1.8 + 15);
+    setFriendsCount(Math.min(mockFriendsCount, 127)); // Cap at reasonable number
+  }, [savedPosts.length, likedPostsData.length]);
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -179,20 +193,20 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Activity Tabs - Using Feed Page Style */}
+          {/* Activity Tabs - Using Feed Page Style with Dynamic Counts */}
           <View style={globalStyles.tabsContainer}>
             <TouchableOpacity
               style={[globalStyles.tab, activeTab === 'echoes' && globalStyles.tabActive]}
               onPress={() => setActiveTab('echoes')}>
               <Text style={[globalStyles.tabText, activeTab === 'echoes' && globalStyles.tabTextActive]}>
-                Your Echoes ({mockActivity.userEchoes})
+                Your Echoes ({userEchoCount})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[globalStyles.tab, activeTab === 'friends' && globalStyles.tabActive]}
               onPress={() => setActiveTab('friends')}>
               <Text style={[globalStyles.tabText, activeTab === 'friends' && globalStyles.tabTextActive]}>
-                Friends ({mockActivity.friends})
+                Friends ({friendsCount})
               </Text>
             </TouchableOpacity>
           </View>
@@ -201,12 +215,16 @@ export default function ProfileScreen() {
           <View style={styles.tabContent}>
             <View style={styles.emptyState}>
               <Text style={[styles.emptyStateText, { fontSize: getResponsiveFontSize(16) }]}>
-                {activeTab === 'echoes' && 'No echoes yet'}
-                {activeTab === 'friends' && 'No friends yet'}
+                {activeTab === 'echoes' && userEchoCount === 0 && 'No echoes yet'}
+                {activeTab === 'echoes' && userEchoCount > 0 && `${userEchoCount} echoes created`}
+                {activeTab === 'friends' && friendsCount === 0 && 'No friends yet'}
+                {activeTab === 'friends' && friendsCount > 0 && `${friendsCount} friends connected`}
               </Text>
               <Text style={[styles.emptyStateSubtext, { fontSize: getResponsiveFontSize(14) }]}>
-                {activeTab === 'echoes' && 'Share your first voice echo to get started'}
-                {activeTab === 'friends' && 'Connect with other users to see them here'}
+                {activeTab === 'echoes' && userEchoCount === 0 && 'Share your first voice echo to get started'}
+                {activeTab === 'echoes' && userEchoCount > 0 && 'Your voice echoes are making an impact in the community'}
+                {activeTab === 'friends' && friendsCount === 0 && 'Connect with other users to see them here'}
+                {activeTab === 'friends' && friendsCount > 0 && 'Your network is growing! Keep connecting with amazing voices'}
               </Text>
             </View>
           </View>

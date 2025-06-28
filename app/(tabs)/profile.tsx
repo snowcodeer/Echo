@@ -10,13 +10,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Settings, MapPin, CreditCard as Edit3, Mic, Users, Check, Headphones, MessageCircle, Play, Pause } from 'lucide-react-native';
+import { Settings, MapPin, CreditCard as Edit3, Headphones, MessageCircle, Share, Bookmark, BookmarkCheck, Download, X, Play, Pause, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { getUserPosts, getUserPostCount, UserPost } from '@/data/profile';
-import { useLike } from '@/contexts/LikeContext';
 import { useSave } from '@/contexts/SaveContext';
 import { usePlay } from '@/contexts/PlayContext';
 import { useTranscription } from '@/contexts/TranscriptionContext';
+import PostCard from '@/components/PostCard';
 import { globalStyles, colors, gradients, spacing, borderRadius, getResponsiveFontSize } from '@/styles/globalStyles';
 
 // Mock user data
@@ -47,10 +47,13 @@ export default function ProfileScreen() {
   const [playProgress, setPlayProgress] = useState<Record<string, number>>({});
   const [playTimers, setPlayTimers] = useState<Record<string, NodeJS.Timeout>>({});
   
-  const { likedPostsData } = useLike();
   const { savedPosts } = useSave();
-  const { currentlyPlaying, setCurrentlyPlaying, getPlayCount } = usePlay();
-  const { transcriptionsEnabled } = useTranscription();
+  const { 
+    currentlyPlaying, 
+    setCurrentlyPlaying, 
+    incrementPlayCount, 
+    hasPlayed 
+  } = usePlay();
 
   // Calculate actual user activity counts and load user posts
   useEffect(() => {
@@ -61,9 +64,9 @@ export default function ProfileScreen() {
     
     // Mock friends count - in a real app this would come from a friends API
     // For now, we'll use a realistic number based on the user's activity
-    const mockFriendsCount = Math.floor(savedPosts.length * 2.5 + likedPostsData.length * 1.8 + 15);
+    const mockFriendsCount = Math.floor(savedPosts.length * 2.5 + posts.length * 1.8 + 15);
     setFriendsCount(Math.min(mockFriendsCount, 127)); // Cap at reasonable number
-  }, [savedPosts.length, likedPostsData.length]);
+  }, [savedPosts.length]);
 
   const handlePlay = (postId: string, duration: number) => {
     if (currentlyPlaying && currentlyPlaying !== postId) {
@@ -84,6 +87,11 @@ export default function ProfileScreen() {
           ...prev,
           [postId]: progress
         }));
+
+        // Increment play count after 5 seconds if not played before
+        if (elapsed >= 5 && !hasPlayed(postId)) {
+          incrementPlayCount(postId);
+        }
 
         if (progress >= 1) {
           handleStop(postId);
@@ -113,19 +121,6 @@ export default function ProfileScreen() {
       ...prev,
       [postId]: 0
     }));
-  };
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const formatCurrentTime = (progress: number, duration: number) => {
-    const currentSeconds = Math.floor(progress * duration);
-    const mins = Math.floor(currentSeconds / 60);
-    const secs = currentSeconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const formatNumber = (num: number): string => {
@@ -186,20 +181,18 @@ export default function ProfileScreen() {
                 source={{ uri: mockUser.avatar }} 
                 style={styles.avatar}
               />
+              {mockUser.isVerified && (
+                <View style={styles.verifiedBadge}>
+                  <Text style={styles.verifiedText}>✓</Text>
+                </View>
+              )}
             </View>
 
             {/* User Info */}
             <View style={styles.userInfo}>
-              <View style={styles.displayNameAndVerifiedContainer}>
-                <Text style={[styles.displayName, { fontSize: getResponsiveFontSize(24) }]}>
-                  {mockUser.displayName}
-                </Text>
-                {mockUser.isVerified && (
-                  <View style={styles.verifiedCheckmark}>
-                    <Check size={16} color={colors.textPrimary} />
-                  </View>
-                )}
-              </View>
+              <Text style={[styles.displayName, { fontSize: getResponsiveFontSize(24) }]}>
+                {mockUser.displayName}
+              </Text>
               <Text style={[styles.username, { fontSize: getResponsiveFontSize(16) }]}>
                 {mockUser.username}
               </Text>
@@ -286,110 +279,20 @@ export default function ProfileScreen() {
           <View style={styles.tabContent}>
             {activeTab === 'echoes' ? (
               userEchoCount > 0 ? (
-                <View style={styles.postsContainer}>
+                <ScrollView
+                  style={{ flex: 1 }}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ paddingBottom: 100 }}>
                   {userPosts.map((post) => (
-                    <View key={post.id} style={styles.postCard}>
-                      <LinearGradient
-                        colors={gradients.surface}
-                        style={styles.postGradient}>
-                        
-                        <View style={styles.postHeader}>
-                          <View style={styles.userInfo}>
-                            <Image source={{ uri: post.avatar }} style={styles.postAvatar} />
-                            <View>
-                              <Text style={styles.postDisplayName}>{post.displayName}</Text>
-                              <Text style={styles.postUsername}>{post.username}</Text>
-                            </View>
-                          </View>
-                          <View style={styles.postMeta}>
-                            <Text style={styles.postTimestamp}>{post.timestamp}</Text>
-                            <View style={styles.createdViaBadge}>
-                              <Text style={styles.createdViaText}>
-                                {post.createdVia === 'text-to-speech' ? 'TTS' : 'Voice'}
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-
-                        {/* Voice Style Badge */}
-                        <View style={styles.voiceStyleContainer}>
-                          <View style={[
-                            styles.voiceStyleBadge,
-                            post.voiceStyle === 'Original' && styles.originalVoiceBadge
-                          ]}>
-                            <Text style={[
-                              styles.voiceStyleText,
-                              post.voiceStyle === 'Original' && styles.originalVoiceText
-                            ]}>
-                              {post.voiceStyle}
-                            </Text>
-                          </View>
-                        </View>
-
-                        {/* Content - Only show if transcriptions are enabled */}
-                        {transcriptionsEnabled && (
-                          <Text style={styles.postContent}>
-                            {post.content}
-                          </Text>
-                        )}
-
-                        {/* Audio Progress with Play Button */}
-                        <View style={styles.audioContainer}>
-                          <View style={styles.audioControls}>
-                            <TouchableOpacity
-                              style={styles.playButton}
-                              onPress={() => handlePlay(post.id, post.duration)}>
-                              {currentlyPlaying === post.id ? (
-                                <Pause size={20} color={colors.textPrimary} />
-                              ) : (
-                                <Play size={20} color={colors.textPrimary} />
-                              )}
-                            </TouchableOpacity>
-                            
-                            <View style={styles.progressContainer}>
-                              <View style={styles.progressTrack}>
-                                <View style={[
-                                  styles.progressFill, 
-                                  { width: `${(playProgress[post.id] || 0) * 100}%` }
-                                ]} />
-                              </View>
-                              <View style={styles.timeContainer}>
-                                <Text style={styles.currentTime}>
-                                  {formatCurrentTime(playProgress[post.id] || 0, post.duration)}
-                                </Text>
-                                <Text style={styles.totalTime}>{formatDuration(post.duration)}</Text>
-                              </View>
-                            </View>
-                          </View>
-                        </View>
-
-                        {/* Tags Section */}
-                        <View style={styles.tagsContainer}>
-                          {post.tags.slice(0, 3).map((tag, index) => (
-                            <View key={index} style={styles.tagButton}>
-                              <Text style={styles.tagText}>#{tag}</Text>
-                            </View>
-                          ))}
-                        </View>
-
-                        {/* Actions Container */}
-                        <View style={styles.actionsContainer}>
-                          <View style={styles.actionButton}>
-                            <Headphones size={20} color={colors.textMuted} />
-                            <Text style={styles.actionText}>
-                              {getPlayCount(post.id)}
-                            </Text>
-                          </View>
-
-                          <View style={styles.actionButton}>
-                            <MessageCircle size={20} color={colors.textMuted} />
-                            <Text style={styles.actionText}>{post.replies}</Text>
-                          </View>
-                        </View>
-                      </LinearGradient>
-                    </View>
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      playProgress={playProgress[post.id] || 0}
+                      onPlay={handlePlay}
+                      onStop={handleStop}
+                    />
                   ))}
-                </View>
+                </ScrollView>
               ) : (
                 <View style={styles.emptyState}>
                   <Text style={[styles.emptyStateText, { fontSize: getResponsiveFontSize(16) }]}>
@@ -444,6 +347,7 @@ const styles = StyleSheet.create({
   avatarContainer: {
     alignItems: 'center',
     marginBottom: spacing.lg,
+    position: 'relative',
   },
   avatar: {
     width: 120,
@@ -452,28 +356,33 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: colors.accent,
   },
+  verifiedBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: colors.surface,
+  },
+  verifiedText: {
+    fontSize: 16,
+    color: colors.textPrimary,
+    fontFamily: 'Inter-Bold',
+  },
   userInfo: {
     alignItems: 'center',
     marginBottom: spacing.lg,
   },
-  displayNameAndVerifiedContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
-  },
   displayName: {
     fontFamily: 'Inter-Bold',
     color: colors.textPrimary,
+    marginBottom: spacing.xs,
     textAlign: 'center',
-  },
-  verifiedCheckmark: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   username: {
     fontFamily: 'Inter-Medium',
@@ -551,165 +460,5 @@ const styles = StyleSheet.create({
     color: colors.textSubtle,
     textAlign: 'center',
     lineHeight: 20,
-  },
-  // Post styles for user echoes
-  postsContainer: {
-    padding: spacing.xl,
-  },
-  postCard: {
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    marginBottom: spacing.lg,
-  },
-  postGradient: {
-    padding: spacing.lg,
-  },
-  postHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  postAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  postDisplayName: {
-    fontFamily: 'Inter-SemiBold',
-    color: colors.textPrimary,
-    fontSize: 16,
-    marginBottom: 2,
-  },
-  postUsername: {
-    fontFamily: 'Inter-Medium',
-    color: colors.accent,
-    fontSize: 14,
-  },
-  postMeta: {
-    alignItems: 'flex-end',
-  },
-  postTimestamp: {
-    fontFamily: 'Inter-Regular',
-    color: colors.textMuted,
-    fontSize: 12,
-    marginBottom: spacing.xs,
-  },
-  createdViaBadge: {
-    backgroundColor: colors.surfaceTertiary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-  },
-  createdViaText: {
-    fontFamily: 'Inter-Medium',
-    color: colors.textMuted,
-    fontSize: 10,
-  },
-  voiceStyleContainer: {
-    marginBottom: spacing.lg,
-  },
-  voiceStyleBadge: {
-    backgroundColor: colors.surfaceTertiary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-    alignSelf: 'flex-start',
-  },
-  originalVoiceBadge: {
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-    borderWidth: 1,
-    borderColor: colors.accent,
-  },
-  voiceStyleText: {
-    fontFamily: 'Inter-Medium',
-    color: colors.textMuted,
-    fontSize: 12,
-  },
-  originalVoiceText: {
-    color: colors.accent,
-    fontFamily: 'Inter-SemiBold',
-  },
-  postContent: {
-    fontFamily: 'Inter-Regular',
-    color: colors.textSecondary,
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: spacing.lg,
-  },
-  audioContainer: {
-    marginBottom: spacing.lg,
-  },
-  audioControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  playButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  progressContainer: {
-    flex: 1,
-    gap: spacing.sm,
-  },
-  progressTrack: {
-    height: 4,
-    backgroundColor: colors.borderSecondary,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.accent,
-    borderRadius: 2,
-  },
-  timeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  currentTime: {
-    fontFamily: 'Inter-Medium',
-    color: colors.accent,
-    fontSize: 12,
-  },
-  totalTime: {
-    fontFamily: 'Inter-Medium',
-    color: colors.textMuted,
-    fontSize: 12,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  tagButton: {
-    backgroundColor: 'rgba(139, 92, 246, 0.15)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.borderAccent,
-  },
-  tagText: {
-    fontFamily: 'Inter-Medium',
-    color: colors.accent,
-    fontSize: 12,
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xl,
-  },
-  actionText: {
-    fontFamily: 'Inter-Medium',
-    color: colors.textMuted,
-    fontSize: 14,
   },
 });

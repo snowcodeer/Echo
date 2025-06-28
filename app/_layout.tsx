@@ -14,8 +14,6 @@ import { LikeProvider } from '@/contexts/LikeContext';
 import { PlayProvider } from '@/contexts/PlayContext';
 import { SaveProvider } from '@/contexts/SaveContext';
 import { TranscriptionProvider } from '@/contexts/TranscriptionContext';
-import { AuthProvider } from '@/contexts/AuthContext';
-import AuthNavigator from '../components/AuthNavigator';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -40,17 +38,18 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <TranscriptionProvider>
-        <SaveProvider>
-          <PlayProvider>
-            <LikeProvider>
-              <AuthNavigator />
-              <StatusBar style="light" />
-            </LikeProvider>
-          </PlayProvider>
-        </SaveProvider>
-      </TranscriptionProvider>
-    </AuthProvider>
+    <TranscriptionProvider>
+      <SaveProvider>
+        <PlayProvider>
+          <LikeProvider>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="light" />
+          </LikeProvider>
+        </PlayProvider>
+      </SaveProvider>
+    </TranscriptionProvider>
   );
 }

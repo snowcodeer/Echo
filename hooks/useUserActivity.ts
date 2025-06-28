@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { UserActivity, UserEcho, UserDownload, UserFriend } from '@/types/user';
 import { getEchoHQPosts } from '@/data/postsDatabase';
+import { useLike } from '@/contexts/LikeContext';
 import { useSave } from '@/contexts/SaveContext';
 
 // Mock data generators
@@ -69,6 +70,7 @@ export function useUserActivity() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  const { likedPostsData } = useLike();
   const { savedPosts } = useSave();
 
   useEffect(() => {
@@ -103,8 +105,18 @@ export function useUserActivity() {
           isPublic: true,
         }));
 
-        // For liked echoes, we'll use an empty array since we removed LikeContext
-        const likedEchoes: UserEcho[] = [];
+        const likedEchoes: UserEcho[] = likedPostsData.map(post => ({
+          id: post.id,
+          content: post.content,
+          audioUrl: post.audioUrl,
+          duration: post.duration,
+          voiceStyle: post.voiceStyle || 'Original',
+          likes: post.likes,
+          replies: post.replies,
+          createdAt: post.createdAt,
+          tags: post.tags,
+          isPublic: true,
+        }));
 
         setActivity({
           savedEchoes,
@@ -121,7 +133,7 @@ export function useUserActivity() {
     };
 
     loadActivity();
-  }, [savedPosts]);
+  }, [likedPostsData, savedPosts]);
 
   const removeDownload = async (downloadId: string) => {
     if (!activity) return;

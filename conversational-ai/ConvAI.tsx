@@ -7,11 +7,25 @@ import { Mic } from "lucide-react-native";
 
 async function requestMicrophonePermission() {
   try {
-    await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Stop the stream immediately since we just needed permission
+    stream.getTracks().forEach(track => track.stop());
     return true;
   } catch (error) {
-    console.log(error);
-    console.error("Microphone permission denied");
+    console.error("Microphone permission error:", error);
+    
+    if (error.name === 'NotAllowedError') {
+      console.error("User denied microphone permission");
+      // Show user-friendly message about going to Settings
+      alert("Please enable microphone access in Settings > Privacy & Security > Microphone");
+    } else if (error.name === 'NotFoundError') {
+      alert("No microphone found on this device");
+    } else if (error.name === 'NotReadableError') {
+      alert("Microphone is already in use by another application");
+    } else {
+      alert("Unable to access microphone. Please check your device settings.");
+    }
+    
     return false;
   }
 }
@@ -38,14 +52,14 @@ export default function ConvAiDOMComponent({
       // Request microphone permission
       const hasPermission = await requestMicrophonePermission();
       if (!hasPermission) {
-        alert("No permission");
+        console.log("Microphone permission denied, cannot start conversation");
         return;
       }
-      //   const signedUrl = await getSignedUrl(); TODO
+
       // Start the conversation with your agent
       console.log("calling startSession");
       await conversation.startSession({
-        agentId: "agent_01jyps63m8f6m900dy1j0hhzg8", // Replace with your agent ID
+        agentId: "agent_01jyps63m8f6m900dy1j0hhzg8",
         dynamicVariables: {
           platform,
         },
@@ -57,11 +71,16 @@ export default function ConvAiDOMComponent({
       });
     } catch (error) {
       console.error("Failed to start conversation:", error);
+      alert("Failed to start conversation. Please try again.");
     }
-  }, [conversation]);
+  }, [conversation, platform]);
 
   const stopConversation = useCallback(async () => {
-    await conversation.endSession();
+    try {
+      await conversation.endSession();
+    } catch (error) {
+      console.error("Failed to stop conversation:", error);
+    }
   }, [conversation]);
 
   return (
@@ -95,13 +114,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(139, 92, 246, 0.3)",
-    // Smooth transition for state changes
-    transition: "all 0.2s ease-in-out",
   },
   micButtonActive: {
     backgroundColor: "#8B5CF6",
     borderColor: "#8B5CF6",
-    // Add subtle pulse effect when active
     shadowColor: "#8B5CF6",
     shadowOffset: {
       width: 0,

@@ -10,6 +10,13 @@ import { colors, spacing } from '@/styles/globalStyles';
 export default function TabLayout() {
   const { isAuthenticated, loading } = useAuth();
 
+  // Move useEffect to the top, before any conditional returns
+  React.useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, loading]);
+
   // Show loading state while checking authentication
   if (loading) {
     return (
@@ -18,13 +25,6 @@ export default function TabLayout() {
       </View>
     );
   }
-
-  // Redirect to login if not authenticated (only after loading is complete)
-  React.useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.replace('/login');
-    }
-  }, [isAuthenticated, loading]);
 
   // Don't render tabs if not authenticated
   if (!isAuthenticated) {

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Settings, MapPin, Shield, CreditCard as Edit3, Mic, Users } from 'lucide-react-native';
+import { Settings, MapPin, Link as LinkIcon, Calendar, Shield, CreditCard as Edit3, Mail, MailCheck, Mic, Users } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { globalStyles, colors, gradients, spacing, borderRadius, getResponsiveFontSize } from '@/styles/globalStyles';
 
@@ -19,17 +19,21 @@ const mockUser = {
   id: 'user_123',
   username: '@EchoHQ',
   displayName: 'EchoHQ',
+  email: 'hello@echohq.com',
   avatar: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
   bio: 'Sharing thoughts through the power of voice ✨ Building the future of audio social media.',
+  joinDate: new Date('2024-01-15'),
   isVerified: true,
   isOwner: true,
   followerCount: 2400,
   followingCount: 892,
   echoCount: 156,
   location: 'London, UK',
+  website: 'https://echohq.com',
   preferences: {
     isPrivate: false,
     allowDirectMessages: true,
+    showEmail: false,
   },
 };
 
@@ -43,10 +47,32 @@ export default function ProfileScreen() {
   const [bioExpanded, setBioExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState('echoes');
 
+  const formatJoinDate = (date: Date): string => {
+    const now = new Date();
+    const diffInMonths = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24 * 30)
+    );
+    
+    if (diffInMonths < 1) return 'Joined this month';
+    if (diffInMonths === 1) return 'Joined 1 month ago';
+    if (diffInMonths < 12) return `Joined ${diffInMonths} months ago`;
+    
+    const years = Math.floor(diffInMonths / 12);
+    return years === 1 ? 'Joined 1 year ago' : `Joined ${years} years ago`;
+  };
+
   const formatNumber = (num: number): string => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
     return num.toString();
+  };
+
+  const maskEmail = (email: string): string => {
+    const [username, domain] = email.split('@');
+    const maskedUsername = username.length > 2 
+      ? username.substring(0, 2) + '*'.repeat(username.length - 2)
+      : username;
+    return `${maskedUsername}@${domain}`;
   };
 
   const handleEditProfile = () => {
@@ -116,6 +142,26 @@ export default function ProfileScreen() {
               <Text style={[styles.username, { fontSize: getResponsiveFontSize(16) }]}>
                 {mockUser.username}
               </Text>
+              
+              {/* Email */}
+              <View style={styles.emailContainer}>
+                {mockUser.preferences.showEmail ? (
+                  <MailCheck size={14} color={colors.success} />
+                ) : (
+                  <Mail size={14} color={colors.textMuted} />
+                )}
+                <Text style={[styles.email, { fontSize: getResponsiveFontSize(12) }]}>
+                  {mockUser.preferences.showEmail ? mockUser.email : maskEmail(mockUser.email)}
+                </Text>
+              </View>
+
+              {/* Join Date */}
+              <View style={styles.joinDateContainer}>
+                <Calendar size={14} color={colors.textMuted} />
+                <Text style={[styles.joinDate, { fontSize: getResponsiveFontSize(12) }]}>
+                  {formatJoinDate(mockUser.joinDate)}
+                </Text>
+              </View>
             </View>
 
             {/* Bio Section */}
@@ -136,17 +182,25 @@ export default function ProfileScreen() {
               </View>
             )}
 
-            {/* Location */}
-            {mockUser.location && (
-              <View style={styles.metaInfo}>
+            {/* Location and Website */}
+            <View style={styles.metaInfo}>
+              {mockUser.location && (
                 <View style={styles.metaItem}>
                   <MapPin size={14} color={colors.textMuted} />
                   <Text style={[styles.metaText, { fontSize: getResponsiveFontSize(12) }]}>
                     {mockUser.location}
                   </Text>
                 </View>
-              </View>
-            )}
+              )}
+              {mockUser.website && (
+                <View style={styles.metaItem}>
+                  <LinkIcon size={14} color={colors.textMuted} />
+                  <Text style={[styles.metaLink, { fontSize: getResponsiveFontSize(12) }]}>
+                    {mockUser.website}
+                  </Text>
+                </View>
+              )}
+            </View>
 
             {/* Stats */}
             <View style={styles.statsContainer}>
@@ -275,6 +329,25 @@ const styles = StyleSheet.create({
     color: colors.accent,
     marginBottom: spacing.sm,
   },
+  emailContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  email: {
+    fontFamily: 'Inter-Regular',
+    color: colors.textMuted,
+  },
+  joinDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  joinDate: {
+    fontFamily: 'Inter-Regular',
+    color: colors.textMuted,
+  },
   bioContainer: {
     marginBottom: spacing.lg,
   },
@@ -307,6 +380,10 @@ const styles = StyleSheet.create({
   metaText: {
     fontFamily: 'Inter-Regular',
     color: colors.textMuted,
+  },
+  metaLink: {
+    fontFamily: 'Inter-Regular',
+    color: colors.accent,
   },
   statsContainer: {
     flexDirection: 'row',

@@ -86,16 +86,6 @@ export default function SettingsScreen() {
           <Text style={styles.headerTitle}>Settings</Text>
           <View style={styles.headerSpacer} />
         </View>
-
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Account Section - Moved to top */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <LogOut size={20} color={colors.error} />
-              <Text style={[styles.sectionTitle, { fontSize: getResponsiveFontSize(18) }]}>
-                Account
-              </Text>
-            </View>
             
             <TouchableOpacity 
               style={[styles.settingCard, styles.signOutCard]}

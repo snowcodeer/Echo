@@ -35,6 +35,8 @@ export default function PostScreen() {
   // Text mode states
   const [textModeVisible, setTextModeVisible] = useState(false);
   const [textContent, setTextContent] = useState('');
+  const [generatedTags, setGeneratedTags] = useState<string[]>([]);
+  const [isGeneratingTags, setIsGeneratingTags] = useState(false);
 
   useEffect(() => {
     return sound
@@ -44,12 +46,79 @@ export default function PostScreen() {
       : undefined;
   }, [sound]);
 
+  const generateTags = async (text: string) => {
+    setIsGeneratingTags(true);
+    try {
+      // Try to use the API route first
+      try {
+        const response = await fetch('/api/generate-tags', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ text }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setGeneratedTags(data.tags.slice(0, 3)); // Limit to 3 tags
+          return;
+        }
+      } catch (apiError) {
+        console.warn('API route failed, using fallback tag generation');
+      }
+
+      // Fallback to local tag generation
+      const mockTags = [];
+      const lowerText = text.toLowerCase();
+      
+      if (lowerText.includes('morning') || lowerText.includes('coffee')) {
+        mockTags.push('morning');
+      }
+      if (lowerText.includes('motivation') || lowerText.includes('inspire')) {
+        mockTags.push('motivation');
+      }
+      if (lowerText.includes('thought') || lowerText.includes('philosophy')) {
+        mockTags.push('deepthoughts');
+      }
+      if (lowerText.includes('confession') || lowerText.includes('secret')) {
+        mockTags.push('confession');
+      }
+      if (lowerText.includes('energy') || lowerText.includes('positive')) {
+        mockTags.push('energy');
+      }
+      if (lowerText.includes('relationship') || lowerText.includes('love')) {
+        mockTags.push('relationshipadvice');
+      }
+      if (lowerText.includes('funny') || lowerText.includes('joke') || lowerText.includes('laugh')) {
+        mockTags.push('comedy');
+      }
+      
+      // Ensure we have at least 3 tags but no more than 3
+      const fallbackTags = ['mindfulness', 'reflection', 'storytelling', 'wisdom', 'growth'];
+      while (mockTags.length < 3) {
+        const randomTag = fallbackTags[Math.floor(Math.random() * fallbackTags.length)];
+        if (!mockTags.includes(randomTag)) {
+          mockTags.push(randomTag);
+        }
+      }
+      
+      setGeneratedTags(mockTags.slice(0, 3)); // Limit to maximum 3 tags
+    } finally {
+      setIsGeneratingTags(false);
+    }
+  };
+
   const handleTextModeSubmit = async () => {
     if (!textContent.trim()) {
       Alert.alert('Error', 'Please enter some text to convert to speech.');
       return;
     }
 
+    // Generate tags first
+    await generateTags(textContent);
+    
+    // Create the post
     setIsPosting(true);
     
     try {
@@ -65,7 +134,7 @@ export default function PostScreen() {
         replies: 0,
         timestamp: 'now',
         isLiked: false,
-        tags: ['voice', 'texttospeech', 'authentic'], // Default tags for text-to-speech posts
+        tags: generatedTags.length > 0 ? generatedTags : ['voice', 'original', 'authentic'],
         content: textContent,
         isUserPost: true,
         createdVia: 'text-to-speech',
@@ -79,6 +148,7 @@ export default function PostScreen() {
         setIsPosting(false);
         setTextModeVisible(false);
         setTextContent('');
+        setGeneratedTags([]);
         setSelectedVoiceStyle('original');
         
         Alert.alert(
@@ -403,19 +473,38 @@ export default function PostScreen() {
                     />
                   </View>
                 )}
+
+                {generatedTags.length > 0 && (
+                  <View style={styles.tagsSection}>
+                    <Text style={styles.sectionTitle}>Generated Tags (Max 3)</Text>
+                    <View style={globalStyles.tagsContainer}>
+                      {generatedTags.slice(0, 3).map((tag, index) => (
+                        <View key={index} style={globalStyles.tagButton}>
+                          <Text style={globalStyles.tagText}>#{tag}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {isGeneratingTags && (
+                  <View style={styles.loadingContainer}>
+                    <Text style={styles.loadingText}>Generating tags...</Text>
+                  </View>
+                )}
               </ScrollView>
 
               <View style={styles.modalFooter}>
                 <TouchableOpacity
                   style={[
                     globalStyles.primaryButton,
-                    (!textContent.trim() || isPosting) && styles.submitButtonDisabled
+                    (!textContent.trim() || isGeneratingTags || isPosting) && styles.submitButtonDisabled
                   ]}
                   onPress={handleTextModeSubmit}
-                  disabled={!textContent.trim() || isPosting}>
+                  disabled={!textContent.trim() || isGeneratingTags || isPosting}>
                   <LinearGradient
                     colors={
-                      (!textContent.trim() || isPosting)
+                      (!textContent.trim() || isGeneratingTags || isPosting)
                         ? gradients.muted
                         : gradients.primary
                     }
@@ -579,6 +668,18 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'right',
     marginTop: spacing.sm,
+  },
+  tagsSection: {
+    marginBottom: spacing.xxl,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: colors.accent,
   },
   modalFooter: {
     padding: spacing.xl,

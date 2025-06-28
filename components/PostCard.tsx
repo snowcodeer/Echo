@@ -23,6 +23,7 @@ import { Post } from '@/data/postsDatabase';
 import { useLike } from '@/contexts/LikeContext';
 import { usePlay } from '@/contexts/PlayContext';
 import { useSave } from '@/contexts/SaveContext';
+import { useTranscription } from '@/contexts/TranscriptionContext';
 import { globalStyles, colors, gradients, spacing, borderRadius } from '@/styles/globalStyles';
 
 interface PostCardProps {
@@ -44,6 +45,7 @@ export default function PostCard({
   
   const { toggleLike, isLiked } = useLike();
   const { currentlyPlaying } = usePlay();
+  const { transcriptionsEnabled } = useTranscription();
   const { 
     downloadPost, 
     removeDownload, 
@@ -150,10 +152,12 @@ export default function PostCard({
           </View>
         </View>
 
-        {/* Content */}
-        <Text style={globalStyles.postContent}>
-          {post.content}
-        </Text>
+        {/* Content - Only show if transcriptions are enabled */}
+        {transcriptionsEnabled && (
+          <Text style={globalStyles.postContent}>
+            {post.content}
+          </Text>
+        )}
 
         {/* Audio Progress with Play Button */}
         <View style={globalStyles.audioContainer}>
@@ -349,15 +353,18 @@ export default function PostCard({
                       </Text>
                     </View>
 
-                    <Text style={{ 
-                      fontSize: 14, 
-                      fontFamily: 'Inter-Regular', 
-                      color: colors.textSecondary, 
-                      lineHeight: 20, 
-                      marginBottom: spacing.md 
-                    }}>
-                      {reply.content}
-                    </Text>
+                    {/* Reply Content - Only show if transcriptions are enabled */}
+                    {transcriptionsEnabled && (
+                      <Text style={{ 
+                        fontSize: 14, 
+                        fontFamily: 'Inter-Regular', 
+                        color: colors.textSecondary, 
+                        lineHeight: 20, 
+                        marginBottom: spacing.md 
+                      }}>
+                        {reply.content}
+                      </Text>
+                    )}
 
                     {/* Reply Audio Controls */}
                     <View style={{ 

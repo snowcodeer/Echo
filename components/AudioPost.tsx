@@ -9,6 +9,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { User } from 'lucide-react-native';
 import { Post } from '@/data/postsDatabase';
+import { useTranscription } from '@/contexts/TranscriptionContext';
 import { globalStyles, colors, spacing, borderRadius } from '@/styles/globalStyles';
 
 const { width } = Dimensions.get('window');
@@ -21,6 +22,7 @@ interface AudioPostProps {
 
 export default function AudioPost({ post, isActive, onPlayToggle }: AudioPostProps) {
   const [currentTime, setCurrentTime] = useState(0);
+  const { transcriptionsEnabled } = useTranscription();
 
   useEffect(() => {
     if (isActive) {
@@ -74,8 +76,10 @@ export default function AudioPost({ post, isActive, onPlayToggle }: AudioPostPro
           </View>
         </View>
 
-        {/* Content Text - using globalStyles */}
-        <Text style={globalStyles.postContent}>{post.content}</Text>
+        {/* Content Text - Only show if transcriptions are enabled */}
+        {transcriptionsEnabled && (
+          <Text style={globalStyles.postContent}>{post.content}</Text>
+        )}
 
         {/* Progress Bar - using globalStyles */}
         <View style={globalStyles.audioContainer}>

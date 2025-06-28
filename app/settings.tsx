@@ -87,9 +87,9 @@ export default function SettingsScreen() {
           <View style={styles.headerSpacer} />
         </View>
 
-    
-            </View>
-            
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* Sign Out Button - Moved to top */}
+          <View style={styles.section}>
             <TouchableOpacity 
               style={[styles.settingCard, styles.signOutCard]}
               onPress={handleSignOut}
@@ -98,9 +98,6 @@ export default function SettingsScreen() {
               <View style={styles.settingInfo}>
                 <Text style={[styles.settingTitle, styles.signOutTitle, { fontSize: getResponsiveFontSize(16) }]}>
                   Sign Out
-                </Text>
-                <Text style={[styles.settingDescription, { fontSize: getResponsiveFontSize(14) }]}>
-                  Sign out of your account and clear all local data
                 </Text>
               </View>
               <LogOut size={20} color={colors.error} />
@@ -413,6 +410,7 @@ const styles = StyleSheet.create({
   },
   signOutTitle: {
     color: colors.error,
+    marginBottom: 0,
   },
   settingDescription: {
     fontFamily: 'Inter-Regular',

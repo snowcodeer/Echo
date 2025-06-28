@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { postsDatabase } from '@/data/postsDatabase';
 
 interface PlaySession {
   postId: string;
@@ -113,7 +114,15 @@ export function PlayProvider({ children }: { children: ReactNode }) {
   };
 
   const getPlayCount = (postId: string) => {
-    return playCounts[postId] || 0;
+    // First check if we have a user-specific play count
+    const userPlayCount = playCounts[postId] || 0;
+    
+    // Then get the simulated base count from the database
+    const post = postsDatabase.find(p => p.id === postId);
+    const baseCount = post?.listenCount || 0;
+    
+    // Return the base count plus any additional plays from this user
+    return baseCount + userPlayCount;
   };
 
   const hasPlayed = (postId: string) => {

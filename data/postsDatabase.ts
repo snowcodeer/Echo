@@ -16,10 +16,49 @@ export interface Post {
   createdAt: Date;
   hasReplies?: boolean;
   replyPosts?: Post[];
+  listenCount?: number; // New field for simulated listen counts
 }
 
 // Consistent EchoHQ avatar across all posts - matching profile name
 const ECHOHQ_AVATAR = 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop';
+
+// Function to generate realistic listen counts based on post characteristics
+function generateListenCount(post: Partial<Post>): number {
+  let baseCount = 0;
+  
+  // Base count based on likes (listen count should be higher than likes)
+  if (post.likes) {
+    baseCount = Math.floor(post.likes * (2.5 + Math.random() * 2)); // 2.5x to 4.5x likes
+  }
+  
+  // Boost for popular creators
+  if (post.username === '@elonmusk') {
+    baseCount = Math.floor(baseCount * 3.2); // Elon gets massive engagement
+  } else if (post.username === '@encode_club') {
+    baseCount = Math.floor(baseCount * 2.1); // Tech content gets good engagement
+  } else if (post.username === '@wisdom_voice') {
+    baseCount = Math.floor(baseCount * 1.8); // Wisdom content performs well
+  }
+  
+  // Boost for certain tags
+  if (post.tags?.includes('comedy')) {
+    baseCount = Math.floor(baseCount * 1.4); // Comedy gets more listens
+  }
+  if (post.tags?.includes('confession')) {
+    baseCount = Math.floor(baseCount * 1.3); // Confessions are engaging
+  }
+  if (post.tags?.includes('motivation')) {
+    baseCount = Math.floor(baseCount * 1.2); // Motivational content performs well
+  }
+  
+  // Add some randomness to make it feel natural
+  const variance = 0.3; // 30% variance
+  const randomMultiplier = 1 + (Math.random() - 0.5) * variance;
+  baseCount = Math.floor(baseCount * randomMultiplier);
+  
+  // Ensure minimum count and realistic numbers
+  return Math.max(baseCount, Math.floor(Math.random() * 50) + 10);
+}
 
 // Reply posts for the top two posts in For You feed
 const post1Replies: Post[] = [
@@ -38,6 +77,7 @@ const post1Replies: Post[] = [
     tags: ['response', 'connection'],
     content: 'This is so true! I had a similar experience last week at a bookstore. Sometimes the universe puts exactly the right person in your path when you need them most.',
     createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+    listenCount: 127,
   },
   {
     id: 'reply_1_2',
@@ -54,6 +94,7 @@ const post1Replies: Post[] = [
     tags: ['wisdom', 'serendipity'],
     content: 'Beautiful reminder that meaningful connections often happen in the most unexpected places. These chance encounters teach us to stay open and present in every moment.',
     createdAt: new Date(Date.now() - 45 * 60 * 1000),
+    listenCount: 189,
   },
 ];
 
@@ -73,6 +114,7 @@ const post2Replies: Post[] = [
     tags: ['energy', 'positivity'],
     content: 'YES! Energy is everything! I love how you put this - it really is about choosing your vibe and watching it ripple out into the world.',
     createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+    listenCount: 98,
   },
   {
     id: 'reply_2_2',
@@ -89,10 +131,11 @@ const post2Replies: Post[] = [
     tags: ['reflection', 'impact'],
     content: 'This makes me think about how we\'re all walking around broadcasting our internal state. What a responsibility and opportunity that is - to be intentional about the energy we share.',
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    listenCount: 156,
   },
 ];
 
-// Centralized post database - all posts under 60 seconds with max 3 tags
+// Centralized post database - all posts under 60 seconds with max 3 tags and simulated listen counts
 export const postsDatabase: Post[] = [
   {
     id: 'post_1',
@@ -103,7 +146,7 @@ export const postsDatabase: Post[] = [
     duration: 28,
     voiceStyle: 'Chill Narrator',
     likes: 142,
-    replies: 25, // Updated to include reply posts
+    replies: 25,
     timestamp: '2h',
     isLiked: false,
     tags: ['deepthoughts', 'philosophy', 'mindfulness'],
@@ -111,6 +154,7 @@ export const postsDatabase: Post[] = [
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
     hasReplies: true,
     replyPosts: post1Replies,
+    listenCount: 487,
   },
   {
     id: 'post_2',
@@ -121,7 +165,7 @@ export const postsDatabase: Post[] = [
     duration: 45,
     voiceStyle: 'Energetic Host',
     likes: 89,
-    replies: 14, // Updated to include reply posts
+    replies: 14,
     timestamp: '4h',
     isLiked: true,
     tags: ['motivation', 'energy', 'morning'],
@@ -129,6 +173,7 @@ export const postsDatabase: Post[] = [
     createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
     hasReplies: true,
     replyPosts: post2Replies,
+    listenCount: 312,
   },
   {
     id: 'post_3',
@@ -145,6 +190,7 @@ export const postsDatabase: Post[] = [
     tags: ['confession', 'anonymous', 'secrets'],
     content: 'I have a confession to make. For years, I\'ve been afraid to share my real thoughts, hiding behind what I thought people wanted to hear. But authenticity is magnetic, and I\'m done pretending to be anyone other than myself.',
     createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
+    listenCount: 834,
   },
   {
     id: 'post_4',
@@ -161,6 +207,7 @@ export const postsDatabase: Post[] = [
     tags: ['motivation', 'energy', 'morning'],
     content: 'Good morning beautiful souls! Remember that every sunrise is a new opportunity to become the person you\'ve always wanted to be. Let\'s make today absolutely incredible!',
     createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000),
+    listenCount: 623,
   },
   {
     id: 'post_5',
@@ -177,6 +224,7 @@ export const postsDatabase: Post[] = [
     tags: ['morning', 'coffee', 'gratitude'],
     content: 'Good morning everyone! Just had my first cup of coffee and I\'m feeling so grateful for this beautiful day. There\'s something magical about morning light streaming through the windows.',
     createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+    listenCount: 756,
   },
   {
     id: 'post_6',
@@ -193,6 +241,7 @@ export const postsDatabase: Post[] = [
     tags: ['coding', 'education', 'web3'],
     content: 'Today we\'re diving deep into smart contract security. Remember, in Web3, your code is your contract with the world. Every line matters, every function call is a promise. Let\'s build the future responsibly.',
     createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+    listenCount: 2847,
   },
   {
     id: 'post_7',
@@ -209,6 +258,7 @@ export const postsDatabase: Post[] = [
     audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
     isLiked: false,
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    listenCount: 3247,
   },
   {
     id: 'post_8',
@@ -225,6 +275,7 @@ export const postsDatabase: Post[] = [
     audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
     isLiked: false,
     createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
+    listenCount: 8934,
   },
   {
     id: 'post_9',
@@ -241,6 +292,7 @@ export const postsDatabase: Post[] = [
     audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
     isLiked: false,
     createdAt: new Date(Date.now() - 7 * 60 * 60 * 1000),
+    listenCount: 6789,
   },
   {
     id: 'post_10',
@@ -257,6 +309,7 @@ export const postsDatabase: Post[] = [
     audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
     isLiked: false,
     createdAt: new Date(Date.now() - 9 * 60 * 60 * 1000),
+    listenCount: 12456,
   },
   {
     id: 'elon_confession',
@@ -273,6 +326,7 @@ export const postsDatabase: Post[] = [
     audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
     isLiked: false,
     createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+    listenCount: 127834,
   },
   {
     id: 'post_11',
@@ -289,6 +343,7 @@ export const postsDatabase: Post[] = [
     audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
     isLiked: false,
     createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+    listenCount: 1567,
   },
   // Comedy posts - new tag added
   {
@@ -306,6 +361,7 @@ export const postsDatabase: Post[] = [
     audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
     isLiked: false,
     createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+    listenCount: 5234,
   },
   {
     id: 'comedy_2',
@@ -322,6 +378,7 @@ export const postsDatabase: Post[] = [
     audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
     isLiked: false,
     createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+    listenCount: 7892,
   },
   {
     id: 'comedy_3',
@@ -338,6 +395,7 @@ export const postsDatabase: Post[] = [
     audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
     isLiked: false,
     createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
+    listenCount: 3456,
   },
   // EchoHQ posts - consistent avatar across all posts matching profile name
   {
@@ -355,6 +413,7 @@ export const postsDatabase: Post[] = [
     audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
     isLiked: false,
     createdAt: new Date(Date.now() - 30 * 60 * 1000),
+    listenCount: 267,
   },
   {
     id: 'echohq_2',
@@ -371,6 +430,7 @@ export const postsDatabase: Post[] = [
     audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
     isLiked: false,
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    listenCount: 445,
   },
   {
     id: 'echohq_3',
@@ -387,6 +447,7 @@ export const postsDatabase: Post[] = [
     audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
     isLiked: false,
     createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+    listenCount: 678,
   },
   {
     id: 'echohq_4',
@@ -403,6 +464,7 @@ export const postsDatabase: Post[] = [
     audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
     isLiked: false,
     createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
+    listenCount: 523,
   },
   {
     id: 'echohq_5',
@@ -419,11 +481,19 @@ export const postsDatabase: Post[] = [
     audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
     isLiked: false,
     createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000),
+    listenCount: 892,
   },
   // Add reply posts to the database
   ...post1Replies,
   ...post2Replies,
 ];
+
+// Apply generated listen counts to posts that don't have them
+postsDatabase.forEach(post => {
+  if (post.listenCount === undefined) {
+    post.listenCount = generateListenCount(post);
+  }
+});
 
 // Helper functions to get posts for different views
 export function getForYouPosts(): Post[] {
@@ -478,7 +548,7 @@ export function getPostsByTag(tag: string): Post[] {
 
 export function getTrendingPosts(): Post[] {
   return postsDatabase
-    .sort((a, b) => b.likes - a.likes)
+    .sort((a, b) => (b.listenCount || 0) - (a.listenCount || 0))
     .slice(0, 10);
 }
 

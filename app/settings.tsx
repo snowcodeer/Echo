@@ -85,6 +85,10 @@ export default function SettingsScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Settings</Text>
           <View style={styles.headerSpacer} />
+        </View>
+
+    
+            </View>
             
             <TouchableOpacity 
               style={[styles.settingCard, styles.signOutCard]}

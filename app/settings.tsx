@@ -14,7 +14,6 @@ import { Settings, Volume2, Type, Shield, Bell, Palette, ArrowLeft, LogOut } fro
 import { router } from 'expo-router';
 import { useTranscription } from '@/contexts/TranscriptionContext';
 import { useUser } from '@/hooks/useUser';
-import { useLike } from '@/contexts/LikeContext';
 import { usePlay } from '@/contexts/PlayContext';
 import { useSave } from '@/contexts/SaveContext';
 import { clearUserPosts } from '@/data/profile';
@@ -23,7 +22,6 @@ import { globalStyles, colors, gradients, spacing, borderRadius, typography, get
 export default function SettingsScreen() {
   const { transcriptionsEnabled, toggleTranscriptions } = useTranscription();
   const { signOut } = useUser();
-  const { clearLikedData } = useLike();
   const { clearPlayData } = usePlay();
   const { clearSavedData } = useSave();
 
@@ -47,7 +45,6 @@ export default function SettingsScreen() {
             try {
               // Clear all context data
               await Promise.all([
-                clearLikedData(),
                 clearPlayData(),
                 clearSavedData(),
               ]);

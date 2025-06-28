@@ -38,7 +38,6 @@ export const colors = {
   info: '#3B82F6',
   
   // Interactive colors
-  like: '#FF3B5C',
   bookmark: '#8B5CF6',
   download: '#8B5CF6',
   
@@ -422,10 +421,6 @@ export const globalStyles = StyleSheet.create({
     ...typography.label,
     color: colors.textMuted,
     fontSize: getResponsiveFontSize(14), // Apply responsive sizing
-  },
-  
-  actionTextActive: {
-    color: colors.like,
   },
   
   // Loading states

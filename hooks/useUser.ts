@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserProfile, UserActivity } from '@/types/user';
+import { UserProfile } from '@/types/user';
 
 // Mock user data for demonstration
 const mockUserProfile: UserProfile = {

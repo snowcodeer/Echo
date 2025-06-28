@@ -13,7 +13,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Settings, MapPin, CreditCard as Edit3, Mic, Users, Check, Headphones, MessageCircle, Play, Pause } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { getUserPosts, getUserPostCount, UserPost } from '@/data/profile';
-import { useLike } from '@/contexts/LikeContext';
 import { useSave } from '@/contexts/SaveContext';
 import { usePlay } from '@/contexts/PlayContext';
 import { useTranscription } from '@/contexts/TranscriptionContext';
@@ -47,7 +46,6 @@ export default function ProfileScreen() {
   const [playProgress, setPlayProgress] = useState<Record<string, number>>({});
   const [playTimers, setPlayTimers] = useState<Record<string, NodeJS.Timeout>>({});
   
-  const { likedPostsData } = useLike();
   const { savedPosts } = useSave();
   const { currentlyPlaying, setCurrentlyPlaying, getPlayCount } = usePlay();
   const { transcriptionsEnabled } = useTranscription();
@@ -61,9 +59,9 @@ export default function ProfileScreen() {
     
     // Mock friends count - in a real app this would come from a friends API
     // For now, we'll use a realistic number based on the user's activity
-    const mockFriendsCount = Math.floor(savedPosts.length * 2.5 + likedPostsData.length * 1.8 + 15);
+    const mockFriendsCount = Math.floor(savedPosts.length * 2.5 + 15);
     setFriendsCount(Math.min(mockFriendsCount, 127)); // Cap at reasonable number
-  }, [savedPosts.length, likedPostsData.length]);
+  }, [savedPosts.length]);
 
   const handlePlay = (postId: string, duration: number) => {
     if (currentlyPlaying && currentlyPlaying !== postId) {

@@ -10,7 +10,6 @@ import {
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
-import { LikeProvider } from '@/contexts/LikeContext';
 import { PlayProvider } from '@/contexts/PlayContext';
 import { SaveProvider } from '@/contexts/SaveContext';
 import { TranscriptionProvider } from '@/contexts/TranscriptionContext';
@@ -41,15 +40,13 @@ export default function RootLayout() {
     <TranscriptionProvider>
       <SaveProvider>
         <PlayProvider>
-          <LikeProvider>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="login" options={{ headerShown: false }} />
-              <Stack.Screen name="settings" options={{ headerShown: false }} />
-              <Stack.Screen name="+not-found" />
-            </Stack>
-            <StatusBar style="light" />
-          </LikeProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="settings" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+          <StatusBar style="light" />
         </PlayProvider>
       </SaveProvider>
     </TranscriptionProvider>

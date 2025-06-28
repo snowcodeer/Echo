@@ -10,6 +10,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -17,6 +18,50 @@ import { Eye, EyeOff, LogIn } from 'lucide-react-native';
 import { globalStyles, colors, gradients, spacing, borderRadius, getResponsiveFontSize } from '@/styles/globalStyles';
 
 const API_BASE_URL = 'https://echo-api-90zm.onrender.com';
+
+// Function to store token securely
+const storeToken = async (token: string) => {
+  try {
+    await AsyncStorage.setItem('authToken', token);
+    console.log('Token stored successfully');
+  } catch (error) {
+    console.error('Error storing token:', error);
+  }
+};
+
+// Function to get stored token
+const getToken = async () => {
+  try {
+    const token = await AsyncStorage.getItem('authToken');
+    return token;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};
+
+// Function to test the token with /api/auth/users endpoint
+const testTokenWithUsers = async (token: string) => {
+  try {
+    console.log('Testing token with /api/auth/users endpoint...');
+    const response = await fetch(API_BASE_URL + '/api/auth/users', {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const result = await response.json();
+    console.log('Users endpoint response:', result);
+    console.log('Users endpoint status:', response.status);
+
+    return { success: response.ok, data: result, status: response.status };
+  } catch (error) {
+    console.error('Error testing token:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -82,16 +127,21 @@ export default function LoginScreen() {
       console.log('Endpoint used:', endpoint);
 
       if (response.ok) {
-        // Login successful
+        // Login successful - extract and store token
+        console.log('Login successful! Full response:', result);
         
-        // Store authentication data if provided
-        // You might want to use AsyncStorage here
-        // await AsyncStorage.setItem('authToken', result.token);
-        // await AsyncStorage.setItem('userData', JSON.stringify(result.user));
+        // Extract token from response (try different common field names)
+        const token = result.token || result.access_token || result.accessToken || result.authToken;
+        
+        // Store the token
+        await storeToken(token);
+        
+        // Test the token with users endpoint
+        const testResult = await testTokenWithUsers(token);
         
         Alert.alert(
           'Login Successful!', 
-          `Connected to API endpoint: ${endpoint}\n\nResponse: ${JSON.stringify(result, null, 2)}`,
+          `Token received and stored!\n\nToken: ${token.substring(0, 20)}...\n\nUsers endpoint test: ${testResult.success ? 'SUCCESS' : 'FAILED'}\n\nUsers data: ${JSON.stringify(testResult.data, null, 2)}`,
           [
             {
               text: 'Continue',
@@ -102,8 +152,38 @@ export default function LoginScreen() {
             }
           ]
         );
+      } else if (response.status === 401) {
+        // Unauthorized - Invalid credentials
+        Alert.alert(
+          'Invalid Credentials',
+          'The username or password you entered is incorrect. Please check your credentials and try again.',
+          [
+            {
+              text: 'Try Again',
+              style: 'default'
+            }
+          ]
+        );
+      } else if (response.status === 400) {
+        // Bad Request - Usually validation errors
+        Alert.alert(
+          'Invalid Request',
+          result.message || 'The request was invalid. Please check your input and try again.'
+        );
+      } else if (response.status === 403) {
+        // Forbidden - Account might be disabled
+        Alert.alert(
+          'Access Forbidden',
+          'Your account may be disabled or you do not have permission to access this service.'
+        );
+      } else if (response.status === 500) {
+        // Server Error
+        Alert.alert(
+          'Server Error',
+          'Something went wrong on our end. Please try again later.'
+        );
       } else {
-        // Login failed
+        // Other errors
         Alert.alert(
           'Login Failed', 
           result.message || result.error || `Server returned status: ${response.status}`
@@ -279,9 +359,27 @@ export default function LoginScreen() {
                     Endpoint: {API_BASE_URL}/api/auth/login
                   </Text>
                   <Text style={[styles.demoText, { fontSize: getResponsiveFontSize(12) }]}>
-                    Try any username/password
+                    Token will be stored and tested with /api/auth/users
                   </Text>
                 </View>
+
+                {/* Test Token Button */}
+                <TouchableOpacity
+                  style={styles.testTokenButton}
+                  onPress={async () => {
+                    const storedToken = await getToken();
+                    if (storedToken) {
+                      const testResult = await testTokenWithUsers(storedToken);
+                      Alert.alert(
+                        'Token Test Result',
+                        `Status: ${testResult.success ? 'SUCCESS' : 'FAILED'}\n\nResponse: ${JSON.stringify(testResult.data, null, 2)}`
+                      );
+                    } else {
+                      Alert.alert('No Token', 'No stored token found. Please login first.');
+                    }
+                  }}>
+                  <Text style={styles.testTokenText}>Test Stored Token</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </ScrollView>
@@ -411,5 +509,19 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: colors.textMuted,
     marginBottom: 2,
+  },
+  testTokenButton: {
+    marginTop: spacing.md,
+    backgroundColor: colors.surfaceSecondary,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSecondary,
+    alignItems: 'center',
+  },
+  testTokenText: {
+    fontFamily: 'Inter-SemiBold',
+    color: colors.accent,
+    fontSize: 14,
   },
 });

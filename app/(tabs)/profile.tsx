@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Settings, RefreshCw, LogOut, User, Mail, Calendar, MailCheck, MapPin, Link as LinkIcon, Shield, Edit3 } from 'lucide-react-native';
+import { Settings, User, Mail, Calendar, MailCheck, MapPin, Link as LinkIcon, Shield } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { makeAuthenticatedRequest } from '@/utils/api';
 import { globalStyles, colors, gradients, spacing, borderRadius, getResponsiveFontSize } from '@/styles/globalStyles';
@@ -93,34 +93,8 @@ export default function ProfileScreen() {
     fetchUserProfile(true);
   };
 
-  const handleSignOut = async () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            const result = await signOut();
-            if (result.success) {
-              router.replace('/login');
-            } else {
-              Alert.alert('Error', 'Failed to sign out. Please try again.');
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const handleSettings = () => {
     router.push('/settings');
-  };
-
-  const handleEditProfile = () => {
-    Alert.alert('Edit Profile', 'Edit profile functionality would be implemented here');
   };
 
   // Utility functions
@@ -200,17 +174,8 @@ export default function ProfileScreen() {
           <View style={styles.headerActions}>
             <TouchableOpacity 
               style={styles.headerButton}
-              onPress={handleRefresh}
-              disabled={loading || refreshing}>
-              <RefreshCw 
-                size={20} 
-                color={loading || refreshing ? colors.textMuted : colors.textPrimary} 
-              />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.headerButton}
-              onPress={handleSignOut}>
-              <LogOut size={20} color={colors.error} />
+              onPress={handleSettings}>
+              <Settings size={20} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -257,20 +222,6 @@ export default function ProfileScreen() {
             <>
               {/* Profile Header */}
               <View style={styles.profileHeader}>
-                {/* Header Actions */}
-                <View style={styles.profileHeaderActions}>
-                  <TouchableOpacity 
-                    style={styles.actionButton}
-                    onPress={handleEditProfile}>
-                    <Edit3 size={20} color={colors.textMuted} />
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.actionButton}
-                    onPress={handleSettings}>
-                    <Settings size={20} color={colors.textMuted} />
-                  </TouchableOpacity>
-                </View>
-
                 {/* Avatar Section */}
                 <View style={styles.avatarContainer}>
                   {apiUser.avatar ? (
@@ -508,20 +459,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-  },
-  profileHeaderActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  actionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.surfaceSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   avatarContainer: {
     alignItems: 'center',

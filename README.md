@@ -2,6 +2,8 @@
 
 EchoHQ is a modern voice-first social media application built with React Native and Expo. It allows users to share short audio "echoes," discover trending content, connect with friends, and manage their saved and downloaded posts. The app emphasizes a clean, intuitive user interface and a seamless audio experience.
 
+Disclaimer: This readme file is all AI generated and has some interesting artifacts. Environment variables are placeholders and there is no payment method nor is it required. Also it should say mobile-first but it does look nice on web.
+
 ## Table of Contents
 
 - [Features](#features)
@@ -121,7 +123,7 @@ To set up and run the EchoHQ project locally, follow these steps:
 2.  **Clone the Repository**:
     ```bash
     git clone <repository-url>
-    cd echohq
+    cd project
     ```
     *(Note: This is a placeholder step as direct repository access is not provided.)*
 

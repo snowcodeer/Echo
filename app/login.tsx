@@ -16,6 +16,8 @@ import { router } from 'expo-router';
 import { Eye, EyeOff, LogIn } from 'lucide-react-native';
 import { globalStyles, colors, gradients, spacing, borderRadius, getResponsiveFontSize } from '@/styles/globalStyles';
 
+const API_BASE_URL = 'https://echo-api-90zm.onrender.com';
+
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -48,22 +50,104 @@ export default function LoginScreen() {
     setIsLoading(true);
     
     try {
-      // Simulate login API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Prepare login data
+      const loginData = {
+        username: username.trim(),
+        password: password.trim(),
+        timestamp: new Date().toISOString(),
+        platform: 'react-native',
+        device: Platform.OS
+      };
+
+      // Use the specific login endpoint
+      const endpoint = '/api/auth/login';
+      console.log(`Making login request to: ${API_BASE_URL}${endpoint}`);
       
-      // For demo purposes, accept any valid credentials
-      if (username.trim() && password.trim()) {
-        // Navigate to main app
-        router.replace('/(tabs)');
-      } else {
-        Alert.alert('Login Failed', 'Invalid credentials. Please try again.');
+      const response = await fetch(API_BASE_URL + endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(loginData)
+      });
+
+      let result;
+      try {
+        result = await response.json();
+      } catch (jsonError) {
+        // If response isn't JSON, treat as text
+        const textResult = await response.text();
+        result = { message: textResult };
       }
+
+      console.log('API Response:', result);
+      console.log('Status:', response.status);
+      console.log('Endpoint used:', endpoint);
+
+      if (response.ok) {
+        // Login successful
+        
+        // Store authentication data if provided
+        // You might want to use AsyncStorage here
+        // await AsyncStorage.setItem('authToken', result.token);
+        // await AsyncStorage.setItem('userData', JSON.stringify(result.user));
+        
+        Alert.alert(
+          'Login Successful!', 
+          `Connected to API endpoint: ${endpoint}\n\nResponse: ${JSON.stringify(result, null, 2)}`,
+          [
+            {
+              text: 'Continue',
+              onPress: () => {
+                // Navigate to main app
+                router.replace('/(tabs)');
+              }
+            }
+          ]
+        );
+      } else {
+        // Login failed
+        Alert.alert(
+          'Login Failed', 
+          result.message || result.error || `Server returned status: ${response.status}`
+        );
+      }
+
     } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      console.error('Login error:', error);
+      
+      // Check if it's a network error
+      if (error.message.includes('Network request failed') || error.message.includes('fetch')) {
+        Alert.alert(
+          'Connection Error', 
+          'Unable to connect to the server. Please check your internet connection and try again.'
+        );
+      } else {
+        Alert.alert(
+          'Error', 
+          `An error occurred during login: ${error.message}`
+        );
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Test API connection on component mount
+  React.useEffect(() => {
+    const testAPIConnection = async () => {
+      try {
+        const response = await fetch(API_BASE_URL);
+        const result = await response.json();
+        console.log('API Status Check:', result);
+      } catch (error) {
+        console.error('API connection test failed:', error);
+      }
+    };
+
+    testAPIConnection();
+  }, []);
 
   return (
     <LinearGradient colors={gradients.background} style={globalStyles.container}>
@@ -190,16 +274,16 @@ export default function LoginScreen() {
                   </LinearGradient>
                 </TouchableOpacity>
 
-                {/* Demo Credentials */}
+                {/* API Info & Demo Credentials */}
                 <View style={styles.demoCredentials}>
                   <Text style={[styles.demoTitle, { fontSize: getResponsiveFontSize(14) }]}>
-                    Demo Credentials
+                    API Integration
                   </Text>
                   <Text style={[styles.demoText, { fontSize: getResponsiveFontSize(12) }]}>
-                    Username: demo
+                    Endpoint: {API_BASE_URL}/api/auth/login
                   </Text>
                   <Text style={[styles.demoText, { fontSize: getResponsiveFontSize(12) }]}>
-                    Password: password
+                    Try any username/password (6+ chars)
                   </Text>
                 </View>
               </View>

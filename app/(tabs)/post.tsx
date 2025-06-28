@@ -128,7 +128,7 @@ export default function PostScreen() {
         displayName: 'EchoHQ',
         avatar: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
         audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav', // Placeholder audio
-        duration: Math.max(Math.floor(textContent.length / 10) + 15, 20), // Estimate duration based on text length, minimum 20 seconds
+        duration: Math.max(Math.min(Math.floor(textContent.length / 15) + 5, 10), 5), // Duration between 5-10 seconds based on text length
         voiceStyle: selectedVoiceStyle === 'original' ? 'Original' : selectedVoiceStyle,
         likes: 0,
         replies: 0,
@@ -198,8 +198,8 @@ export default function PostScreen() {
         const duration = Math.floor((Date.now() - startTime) / 1000);
         setRecordingDuration(duration);
         
-        // Auto-stop at 60 seconds
-        if (duration >= 60) {
+        // Auto-stop at 10 seconds for short posts
+        if (duration >= 10) {
           stopRecording();
           clearInterval(timer);
         }
@@ -287,7 +287,7 @@ export default function PostScreen() {
         displayName: 'EchoHQ',
         avatar: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
         audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav', // In a real app, this would be the recorded audio URL
-        duration: recordingDuration,
+        duration: Math.max(Math.min(recordingDuration, 10), 5), // Ensure duration is between 5-10 seconds
         voiceStyle: selectedVoiceStyle === 'original' ? 'Original' : selectedVoiceStyle,
         likes: 0,
         replies: 0,
@@ -344,7 +344,7 @@ export default function PostScreen() {
 
           <View style={styles.durationContainer}>
             <Text style={styles.durationText}>
-              {formatDuration(recordingDuration)} / 1:00
+              {formatDuration(recordingDuration)} / 0:10
             </Text>
           </View>
 
@@ -457,10 +457,10 @@ export default function PostScreen() {
                     onChangeText={setTextContent}
                     multiline
                     numberOfLines={8}
-                    maxLength={750}
+                    maxLength={300}
                   />
                   <Text style={styles.characterCount}>
-                    {textContent.length}/750 characters
+                    {textContent.length}/300 characters (5-10 second echo)
                   </Text>
                 </View>
 

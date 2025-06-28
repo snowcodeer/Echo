@@ -9,12 +9,13 @@
     "lint": "expo lint"
   },
   "dependencies": {
-    "@expo/vector-icons": "^14.1.0",
+    "@elevenlabs/client": "^0.1.7",
     "@expo-google-fonts/inter": "^0.2.3",
+    "@expo/vector-icons": "^14.1.0",
     "@lucide/lab": "^0.1.2",
+    "@react-native-async-storage/async-storage": "2.1.2",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
-    "@react-native-async-storage/async-storage": "2.1.2",
     "expo": "53.0.13",
     "expo-av": "~15.1.5",
     "expo-blur": "~14.1.5",
@@ -25,12 +26,12 @@
     "expo-linear-gradient": "~14.1.5",
     "expo-linking": "~7.1.5",
     "expo-router": "~5.1.1",
+    "expo-speech": "~13.1.7",
     "expo-splash-screen": "~0.30.9",
     "expo-status-bar": "~2.2.3",
     "expo-symbols": "~0.4.5",
     "expo-system-ui": "~5.0.9",
     "expo-web-browser": "~14.2.0",
-    "expo-speech": "~13.1.7",
     "firebase": "^10.7.1",
     "lucide-react-native": "^0.475.0",
     "react": "19.0.0",
@@ -43,7 +44,8 @@
     "react-native-svg": "15.11.2",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "^0.20.0",
-    "react-native-webview": "13.13.5"
+    "react-native-webview": "13.13.5",
+    "vite": "^7.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

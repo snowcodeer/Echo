@@ -7,16 +7,15 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { Bookmark, Heart, Download, Mic, Users, Grid3x3 as Grid3X3, List, Table } from 'lucide-react-native';
+import { Bookmark, Download, Mic, Users, Grid3x3 as Grid3X3, List, Table } from 'lucide-react-native';
 import { UserActivity } from '@/types/user';
 import { colors, spacing, borderRadius, typography } from '@/styles/globalStyles';
 import SavedEchoesTab from './tabs/SavedEchoesTab';
-import LikedEchoesTab from './tabs/LikedEchoesTab';
 import DownloadsTab from './tabs/DownloadsTab';
 import UserEchoesTab from './tabs/UserEchoesTab';
 import FriendsTab from './tabs/FriendsTab';
 
-type TabType = 'saved' | 'liked' | 'downloads' | 'echoes' | 'friends';
+type TabType = 'saved' | 'downloads' | 'echoes' | 'friends';
 
 interface Tab {
   id: TabType;
@@ -76,12 +75,6 @@ export default function ActivityTabs({
       count: activity.savedEchoes.length,
     },
     {
-      id: 'liked',
-      label: 'Liked',
-      icon: <Heart size={18} color={activeTab === 'liked' ? colors.accent : colors.textMuted} />,
-      count: activity.likedEchoes.length,
-    },
-    {
       id: 'downloads',
       label: 'Downloads',
       icon: <Download size={18} color={activeTab === 'downloads' ? colors.accent : colors.textMuted} />,
@@ -105,8 +98,6 @@ export default function ActivityTabs({
     switch (activeTab) {
       case 'saved':
         return <SavedEchoesTab echoes={activity.savedEchoes} />;
-      case 'liked':
-        return <LikedEchoesTab echoes={activity.likedEchoes} />;
       case 'downloads':
         return <DownloadsTab downloads={activity.downloads} />;
       case 'echoes':

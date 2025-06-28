@@ -24,7 +24,6 @@ export interface UserProfile {
 
 export interface UserActivity {
   savedEchoes: UserEcho[];
-  likedEchoes: UserEcho[];
   downloads: UserDownload[];
   userEchoes: UserEcho[];
   friends: UserFriend[];

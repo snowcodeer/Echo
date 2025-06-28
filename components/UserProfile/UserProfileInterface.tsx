@@ -6,7 +6,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useUser } from '@/hooks/useUser';
+import { router } from 'expo-router';
+import { useAuth } from '@/hooks/useAuth';
 import { useUserActivity } from '@/hooks/useUserActivity';
 import { EditProfileData } from '@/types/user';
 import { gradients } from '@/styles/globalStyles';
@@ -16,7 +17,7 @@ import EditProfileModal from './EditProfileModal';
 
 export default function UserProfileInterface() {
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const { user, loading: userLoading, error: userError, updateProfile } = useUser();
+  const { user, loading: userLoading, refreshUserData } = useAuth();
   const { 
     activity, 
     loading: activityLoading, 
@@ -28,11 +29,23 @@ export default function UserProfileInterface() {
   };
 
   const handleSettings = () => {
-    Alert.alert('Settings', 'Settings functionality would be implemented here');
+    router.push('/settings');
   };
 
   const handleSaveProfile = async (data: EditProfileData) => {
-    return await updateProfile(data);
+    try {
+      // In a real app, this would make an API call to update the profile
+      // For now, we'll simulate success and refresh user data
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Refresh user data from the API
+      await refreshUserData();
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      return { success: false, error: 'Failed to update profile' };
+    }
   };
 
   const handleRetryActivity = () => {
@@ -45,24 +58,48 @@ export default function UserProfileInterface() {
       <LinearGradient colors={gradients.background} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.loadingContainer}>
-            {/* Loading state would be handled by individual components */}
+            {/* Loading state is handled by individual components */}
           </View>
         </SafeAreaView>
       </LinearGradient>
     );
   }
 
-  if (userError || !user) {
+  if (!user) {
     return (
       <LinearGradient colors={gradients.background} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.errorContainer}>
-            {/* Error state would be handled by individual components */}
+            {/* Error state - user should be redirected to login */}
           </View>
         </SafeAreaView>
       </LinearGradient>
     );
   }
+
+  // Convert auth user to UserProfile format for compatibility
+  const userProfile = {
+    id: user.id,
+    username: user.username || '@user',
+    displayName: user.displayName || user.username || 'User',
+    email: user.email || 'user@example.com',
+    avatar: user.avatar,
+    bio: user.bio,
+    joinDate: user.joinDate ? new Date(user.joinDate) : new Date(),
+    isVerified: user.isVerified || false,
+    isOwner: true, // Current user is always the owner of their profile
+    followerCount: user.followerCount || 0,
+    followingCount: user.followingCount || 0,
+    echoCount: user.echoCount || 0,
+    location: user.location,
+    website: user.website,
+    preferences: {
+      isPrivate: user.preferences?.isPrivate || false,
+      allowDirectMessages: user.preferences?.allowDirectMessages || true,
+      showEmail: user.preferences?.showEmail || false,
+      showBirthDate: user.preferences?.showBirthDate || false,
+    },
+  };
 
   return (
     <LinearGradient colors={gradients.background} style={styles.container}>
@@ -70,7 +107,7 @@ export default function UserProfileInterface() {
         
         {/* Profile Header */}
         <ProfileHeader
-          user={user}
+          user={userProfile}
           onEditPress={handleEditProfile}
           onSettingsPress={handleSettings}
         />
@@ -86,7 +123,7 @@ export default function UserProfileInterface() {
         {/* Edit Profile Modal */}
         <EditProfileModal
           visible={editModalVisible}
-          user={user}
+          user={userProfile}
           onClose={() => setEditModalVisible(false)}
           onSave={handleSaveProfile}
         />

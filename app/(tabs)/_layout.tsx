@@ -1,9 +1,26 @@
+import React from 'react';
 import { Tabs } from 'expo-router';
 import { Platform, View } from 'react-native';
 import { Chrome as Home, Bookmark, Mic, Compass, User } from 'lucide-react-native';
+import { useAuth } from '@/hooks/useAuth';
+import { router } from 'expo-router';
 import BoltBadge from '@/components/BoltBadge';
 
 export default function TabLayout() {
+  const { isAuthenticated, loading } = useAuth();
+
+  // Redirect to login if not authenticated
+  React.useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, loading]);
+
+  // Don't render tabs if not authenticated
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <View style={{ flex: 1 }}>
       <Tabs

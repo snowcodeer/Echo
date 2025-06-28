@@ -50,6 +50,9 @@ function generateListenCount(post: Partial<Post>): number {
   if (post.tags?.includes('motivation')) {
     baseCount = Math.floor(baseCount * 1.2); // Motivational content performs well
   }
+  if (post.tags?.includes('success')) {
+    baseCount = Math.floor(baseCount * 1.3); // Success content performs well
+  }
   
   // Add some randomness to make it feel natural
   const variance = 0.3; // 30% variance
@@ -149,7 +152,7 @@ export const postsDatabase: Post[] = [
     replies: 25,
     timestamp: '2h',
     isLiked: false,
-    tags: ['deepthoughts', 'philosophy', 'mindfulness'],
+    tags: ['success', 'philosophy', 'mindfulness'],
     content: 'Just had the most incredible conversation with a stranger at the coffee shop. Sometimes the best connections happen when you least expect them. We talked about everything from philosophy to our favorite books, and I left feeling so inspired.',
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
     hasReplies: true,
@@ -253,8 +256,8 @@ export const postsDatabase: Post[] = [
     likes: 892,
     replies: 134,
     timestamp: '2h',
-    tags: ['deepthoughts', 'philosophy', 'existence'],
-    content: 'What if consciousness is just the universe trying to understand itself through our eyes? Every thought we have is a cosmic conversation.',
+    tags: ['success', 'philosophy', 'existence'],
+    content: 'What if consciousness is just the universe trying to understand itself through our eyes? Every thought we have is a cosmic conversation, and every success is the universe celebrating its own potential.',
     audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
     isLiked: false,
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
@@ -396,6 +399,41 @@ export const postsDatabase: Post[] = [
     isLiked: false,
     createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
     listenCount: 3456,
+  },
+  // Success-focused posts - replacing deepthoughts
+  {
+    id: 'success_1',
+    username: '@success_mindset',
+    displayName: 'Success Mindset',
+    avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
+    duration: 8,
+    voiceStyle: 'Motivational Speaker',
+    likes: 1234,
+    replies: 189,
+    timestamp: '2h',
+    tags: ['success', 'mindset', 'achievement'],
+    content: 'Success isn\'t about being perfect. It\'s about being consistent. Every small step you take today is building the foundation for tomorrow\'s breakthrough. Trust the process.',
+    audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
+    isLiked: false,
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    listenCount: 4567,
+  },
+  {
+    id: 'success_2',
+    username: '@achievement_unlocked',
+    displayName: 'Achievement Unlocked',
+    avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
+    duration: 9,
+    voiceStyle: 'Confident Leader',
+    likes: 987,
+    replies: 145,
+    timestamp: '4h',
+    tags: ['success', 'goals', 'victory'],
+    content: 'Just closed the biggest deal of my career! But here\'s the thing - success isn\'t just about the big wins. It\'s about celebrating every small victory along the way. What are you celebrating today?',
+    audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
+    isLiked: false,
+    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+    listenCount: 3789,
   },
   // EchoHQ posts - consistent avatar across all posts matching profile name
   {
@@ -555,5 +593,11 @@ export function getTrendingPosts(): Post[] {
 export function getComedyPosts(): Post[] {
   return postsDatabase.filter(post =>
     post.tags.includes('comedy')
+  );
+}
+
+export function getSuccessPosts(): Post[] {
+  return postsDatabase.filter(post =>
+    post.tags.includes('success')
   );
 }

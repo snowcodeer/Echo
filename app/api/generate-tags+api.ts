@@ -33,18 +33,19 @@ function generateFallbackTags(text: string): string[] {
   const lowerText = text.toLowerCase();
   const fallbackTags: string[] = [];
   
-  // Keyword-based tag generation
+  // Keyword-based tag generation - updated to include success
   const tagMap = {
     'morning': ['morning', 'coffee', 'sunrise', 'wake'],
-    'motivation': ['motivation', 'inspire', 'success', 'goal', 'achieve'],
-    'deepthoughts': ['thought', 'philosophy', 'wonder', 'think', 'ponder'],
+    'motivation': ['motivation', 'inspire', 'goal', 'achieve'],
+    'success': ['success', 'achievement', 'win', 'accomplish', 'victory', 'breakthrough', 'progress', 'growth', 'triumph'],
     'confession': ['confession', 'secret', 'admit', 'truth'],
     'energy': ['energy', 'positive', 'vibe', 'excited', 'happy'],
     'relationshipadvice': ['relationship', 'love', 'dating', 'partner', 'heart'],
     'mindfulness': ['mindful', 'peace', 'calm', 'meditation', 'zen'],
     'growth': ['growth', 'learn', 'improve', 'better', 'change'],
     'wisdom': ['wisdom', 'advice', 'experience', 'lesson'],
-    'storytelling': ['story', 'tale', 'remember', 'once', 'happened']
+    'storytelling': ['story', 'tale', 'remember', 'once', 'happened'],
+    'philosophy': ['philosophy', 'think', 'ponder', 'wonder', 'existence']
   };
 
   // Check for keyword matches

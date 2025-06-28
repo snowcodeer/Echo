@@ -11,7 +11,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Search, TrendingUp, Hash, Users, X } from 'lucide-react-native';
-import { useLike } from '@/contexts/LikeContext';
 import { usePlay } from '@/contexts/PlayContext';
 import { useSave } from '@/contexts/SaveContext';
 import { getFeaturedPosts, getPostsByTag, Post } from '@/data/postsDatabase';
@@ -37,7 +36,7 @@ interface TrendingCreator {
 }
 
 const trendingTags: TrendingTag[] = [
-  { id: '1', tag: 'deepthoughts', posts: 1247, growth: '+23%' },
+  { id: '1', tag: 'success', posts: 1247, growth: '+23%' },
   { id: '2', tag: 'motivation', posts: 892, growth: '+18%' },
   { id: '3', tag: 'comedy', posts: 756, growth: '+42%' },
   { id: '4', tag: 'breakups', posts: 834, growth: '+52%' },

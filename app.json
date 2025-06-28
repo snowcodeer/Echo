@@ -12,8 +12,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.sabihxh.echo",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
-        "NSMicrophoneUsageDescription": "This app needs access to your microphone to enable voice conversations with the AI assistant and record audio echoes."
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "web": {
@@ -27,7 +26,7 @@
       "expo-web-browser",
       ["expo-av",
         {
-          "microphonePermission": "This app needs access to your microphone to enable voice conversations with the AI assistant and record audio echoes."
+          "microphonePermission": "Allow echo to access your microphone to record audio."
         }]
     ],
     "experiments": {
@@ -41,10 +40,7 @@
     },
     "owner": "sabihxh",
     "android": {
-      "package": "com.sabihxh.echo",
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+      "package": "com.sabihxh.echo"
     }
   }
 }

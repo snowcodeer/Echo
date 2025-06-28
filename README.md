@@ -4,6 +4,8 @@ EchoHQ is a modern voice-first social media application built with React Native 
 
 Disclaimer: This readme file is all AI generated and has some interesting artifacts. Environment variables are placeholders and there is no payment method nor is it required. Also it should say mobile-first but it does look nice on web.
 
+Hello again :)
+
 ## Table of Contents
 
 - [Features](#features)

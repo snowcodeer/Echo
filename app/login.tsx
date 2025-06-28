@@ -60,6 +60,7 @@ export default function LoginScreen() {
       const response = await fetch(API_BASE_URL + endpoint, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
@@ -92,19 +93,8 @@ export default function LoginScreen() {
             await AsyncStorage.setItem('userData', JSON.stringify(result.user));
           }
 
-          Alert.alert(
-            'Login Successful!', 
-            `Welcome back! You are now logged in.`,
-            [
-              {
-                text: 'Continue',
-                onPress: () => {
-                  // Navigate to main app
-                  router.replace('/(tabs)');
-                }
-              }
-            ]
-          );
+          // Navigate immediately to main app
+          router.replace('/(tabs)');
         } else {
           console.warn('Login successful, but no token received in response.');
           Alert.alert(

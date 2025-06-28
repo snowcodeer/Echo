@@ -23,7 +23,11 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      ["expo-av",
+        {
+          "microphonePermission": "Allow echo to access your microphone to record audio."
+        }]
     ],
     "experiments": {
       "typedRoutes": true

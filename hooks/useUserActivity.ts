@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { UserActivity, UserEcho, UserDownload, UserFriend } from '@/types/user';
 import { getEchoHQPosts } from '@/data/postsDatabase';
+import { getUserPosts as getLocalUserPosts } from '@/data/profile';
 import { useSave } from '@/contexts/SaveContext';
 
 // Mock data generators
@@ -76,18 +77,39 @@ export function useUserActivity() {
       try {
         setLoading(true);
         
-        // Convert posts to UserEcho format
-        const userEchoes: UserEcho[] = getEchoHQPosts().map(post => ({
-          id: post.id,
-          content: post.content,
-          audioUrl: post.audioUrl,
-          duration: post.duration,
-          voiceStyle: post.voiceStyle,
-          replies: post.replies,
-          createdAt: post.createdAt,
-          tags: post.tags,
-          isPublic: true,
-        }));
+        // Get hardcoded EchoHQ posts
+        const echoHQPosts = getEchoHQPosts();
+        
+        // Get locally created user posts
+        const localUserPosts = getLocalUserPosts();
+        
+        // Combine both lists - local posts first (most recent)
+        const combinedUserEchoes: UserEcho[] = [
+          // Convert local user posts to UserEcho format
+          ...localUserPosts.map(post => ({
+            id: post.id,
+            content: post.content,
+            audioUrl: post.audioUrl,
+            duration: post.duration,
+            voiceStyle: post.voiceStyle,
+            replies: post.replies,
+            createdAt: post.createdAt,
+            tags: post.tags,
+            isPublic: true,
+          })),
+          // Convert hardcoded EchoHQ posts to UserEcho format
+          ...echoHQPosts.map(post => ({
+            id: post.id,
+            content: post.content,
+            audioUrl: post.audioUrl,
+            duration: post.duration,
+            voiceStyle: post.voiceStyle,
+            replies: post.replies,
+            createdAt: post.createdAt,
+            tags: post.tags,
+            isPublic: true,
+          }))
+        ];
 
         const savedEchoes: UserEcho[] = savedPosts.map(post => ({
           id: post.id,
@@ -104,7 +126,7 @@ export function useUserActivity() {
         setActivity({
           savedEchoes,
           downloads: generateMockDownloads(),
-          userEchoes,
+          userEchoes: combinedUserEchoes,
           friends: generateMockFriends(),
         });
       } catch (err) {

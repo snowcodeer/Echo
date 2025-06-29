@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Audio } from 'expo-av';
-import { Settings, User, Mail, Calendar, MailCheck, MapPin, Link as LinkIcon, Shield, Play, Heart, Eye } from 'lucide-react-native';
+import { Settings, User, Mail, Calendar, MailCheck, MapPin, Link as LinkIcon, Shield, Play, Heart, Eye, Pause, Loader } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { makeAuthenticatedRequest } from '@/utils/api';
 import { globalStyles, colors, gradients, spacing, borderRadius, getResponsiveFontSize } from '@/styles/globalStyles';
@@ -70,6 +70,9 @@ export default function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [bioExpanded, setBioExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState('echoes');
+  const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
+  const [audioLoading, setAudioLoading] = useState<string | null>(null);
+  const [playbackStatus, setPlaybackStatus] = useState<any>(null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -77,6 +80,32 @@ export default function ProfileScreen() {
       router.replace('/login');
     }
   }, [isAuthenticated, authLoading]);
+
+  // Handle audio press
+  const handleAudioPress = async (audioUrl: string, postId: string) => {
+    try {
+      setAudioLoading(postId);
+      console.log('Playing audio:', audioUrl);
+      const { sound } = await Audio.Sound.createAsync({ uri: audioUrl });
+      setCurrentlyPlayingId(postId);
+      await sound.playAsync();
+      
+      // Cleanup after playing
+      sound.setOnPlaybackStatusUpdate((status) => {
+        setPlaybackStatus(status);
+        if (status.didJustFinish) {
+          sound.unloadAsync();
+          setCurrentlyPlayingId(null);
+          setPlaybackStatus(null);
+        }
+      });
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      Alert.alert('Audio Error', 'Failed to play audio. Please try again.');
+    } finally {
+      setAudioLoading(null);
+    }
+  };
 
   // Simple audio play function
   const playAudio = async (audioUrl: string) => {
@@ -258,40 +287,41 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       
-      <View style={styles.postMeta}>
-        <Text style={[styles.postDuration, { fontSize: getResponsiveFontSize(12) }]}>
-          {formatDuration(item.duration)}
-        </Text>
-        <Text style={[styles.postStyle, { fontSize: getResponsiveFontSize(12) }]}>
-          {item.voice_style}
-        </Text>
-      </View>
-      
-      {item.tags.length > 0 && (
-        <View style={styles.postTags}>
-          {item.tags.map((tag, index) => (
-            <View key={index} style={styles.tag}>
-              <Text style={[styles.tagText, { fontSize: getResponsiveFontSize(10) }]}>
-                #{tag}
-              </Text>
-            </View>
-          ))}
-        </View>
-      )}
-      
-      <View style={styles.postStats}>
-        <View style={styles.statRow}>
-          <Heart size={14} color={item.is_liked ? colors.accent : colors.textMuted} 
-                fill={item.is_liked ? colors.accent : 'transparent'} />
-          <Text style={[styles.statText, { fontSize: getResponsiveFontSize(12) }]}>
-            {item.likes}
+        <View style={styles.postMeta}>
+          <Text style={[styles.postDuration, { fontSize: getResponsiveFontSize(12) }]}>
+            {formatDuration(item.duration)}
+          </Text>
+          <Text style={[styles.postStyle, { fontSize: getResponsiveFontSize(12) }]}>
+            {item.voice_style}
           </Text>
         </View>
-        <View style={styles.statRow}>
-          <Eye size={14} color={colors.textMuted} />
-          <Text style={[styles.statText, { fontSize: getResponsiveFontSize(12) }]}>
-            {item.listen_count}
-          </Text>
+        
+        {item.tags.length > 0 && (
+          <View style={styles.postTags}>
+            {item.tags.map((tag, index) => (
+              <View key={index} style={styles.tag}>
+                <Text style={[styles.tagText, { fontSize: getResponsiveFontSize(10) }]}>
+                  #{tag}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+        
+        <View style={styles.postStats}>
+          <View style={styles.statRow}>
+            <Heart size={14} color={item.is_liked ? colors.accent : colors.textMuted} 
+                  fill={item.is_liked ? colors.accent : 'transparent'} />
+            <Text style={[styles.statText, { fontSize: getResponsiveFontSize(12) }]}>
+              {item.likes}
+            </Text>
+          </View>
+          <View style={styles.statRow}>
+            <Eye size={14} color={colors.textMuted} />
+            <Text style={[styles.statText, { fontSize: getResponsiveFontSize(12) }]}>
+              {item.listen_count}
+            </Text>
+          </View>
         </View>
       </View>
     );
@@ -833,6 +863,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  playButtonActive: {
+    backgroundColor: colors.accent + '20',
   },
   postMeta: {
     flexDirection: 'row',

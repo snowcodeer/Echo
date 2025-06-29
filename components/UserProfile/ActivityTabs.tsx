@@ -29,17 +29,19 @@ interface ActivityTabsProps {
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+  onRefreshUserPosts?: () => void;
 }
 
 export default function ActivityTabs({ 
   activity, 
   loading, 
   error, 
-  onRetry 
+  onRetry,
+  onRefreshUserPosts
 }: ActivityTabsProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('saved');
+  const [activeTab, setActiveTab] = useState<TabType>('echoes');
 
-  if (loading) {
+  if (loading && !activity) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.accent} />
@@ -48,7 +50,7 @@ export default function ActivityTabs({
     );
   }
 
-  if (error) {
+  if (error && !activity) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error}</Text>
@@ -69,6 +71,12 @@ export default function ActivityTabs({
 
   const tabs: Tab[] = [
     {
+      id: 'echoes',
+      label: 'Your Echoes',
+      icon: <Mic size={18} color={activeTab === 'echoes' ? colors.accent : colors.textMuted} />,
+      count: activity.userEchoes.length,
+    },
+    {
       id: 'saved',
       label: 'Saved',
       icon: <Bookmark size={18} color={activeTab === 'saved' ? colors.accent : colors.textMuted} />,
@@ -79,12 +87,6 @@ export default function ActivityTabs({
       label: 'Downloads',
       icon: <Download size={18} color={activeTab === 'downloads' ? colors.accent : colors.textMuted} />,
       count: activity.downloads.length,
-    },
-    {
-      id: 'echoes',
-      label: 'Your Echoes',
-      icon: <Mic size={18} color={activeTab === 'echoes' ? colors.accent : colors.textMuted} />,
-      count: activity.userEchoes.length,
     },
     {
       id: 'friends',
@@ -101,7 +103,13 @@ export default function ActivityTabs({
       case 'downloads':
         return <DownloadsTab downloads={activity.downloads} />;
       case 'echoes':
-        return <UserEchoesTab echoes={activity.userEchoes} />;
+        return (
+          <UserEchoesTab 
+            echoes={activity.userEchoes} 
+            loading={loading}
+            onRefresh={onRefreshUserPosts}
+          />
+        );
       case 'friends':
         return <FriendsTab friends={activity.friends} />;
       default:

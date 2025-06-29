@@ -89,6 +89,26 @@ export const fetchUserProfile = async () => {
   }
 };
 
+// Fetch user posts from API
+export const fetchUserPosts = async (skip: number = 0, limit: number = 10) => {
+  try {
+    const response = await makeAuthenticatedRequest(`/api/posts/my-posts?skip=${skip}&limit=${limit}`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('User posts fetched successfully:', data);
+      return { success: true, data: data.posts, total: data.total };
+    } else {
+      const errorData = await response.json();
+      console.error('Failed to fetch user posts:', response.status, errorData);
+      return { success: false, error: errorData.message || 'Failed to fetch posts' };
+    }
+  } catch (error) {
+    console.error('Network error fetching user posts:', error);
+    return { success: false, error: 'Network error occurred' };
+  }
+};
+
 // Check if user is authenticated
 export const isAuthenticated = async (): Promise<boolean> => {
   const token = await getAuthToken();
@@ -143,21 +163,7 @@ export const logout = async () => {
   }
 };
 
-// Example of other authenticated API calls (using mock data for now)
-export const fetchUserPosts = async () => {
-  try {
-    // For now, return mock data as requested
-    // In the future, this would make a real API call:
-    // const response = await makeAuthenticatedRequest('/api/user/posts');
-    
-    console.log('fetchUserPosts called - using mock data for now');
-    return { success: true, data: [] }; // Mock empty array
-  } catch (error) {
-    console.error('Error fetching user posts:', error);
-    return { success: false, error: 'Failed to fetch posts' };
-  }
-};
-
+// Create post function
 export const createPost = async (postData: any) => {
   try {
     // For now, return mock success as requested

@@ -6,7 +6,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Play, MessageCircle, Lock, HeartHandshake } from 'lucide-react-native';
+import { Play, MessageCircle, Lock, HeartHandshake, Heart } from 'lucide-react-native';
 import { UserEcho } from '@/types/user';
 import { useUserActivity } from '@/hooks/useUserActivity';
 import { colors, spacing, borderRadius, typography } from '@/styles/globalStyles';
@@ -30,6 +30,12 @@ export default function EchoListItem({
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatCount = (count: number) => {
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
+    return count.toString();
   };
 
   return (
@@ -57,9 +63,9 @@ export default function EchoListItem({
           </View>
           
           <View style={styles.headerRight}>
-            {showLikedIndicator && (
+            {showLikedIndicator && echo.isLiked && (
               <View style={styles.likedIndicator}>
-                <HeartHandshake size={14} color={colors.accent} />
+                <Heart size={14} color={colors.error} fill={colors.error} />
               </View>
             )}
             {showPrivateIndicator && !echo.isPublic && (
@@ -94,6 +100,18 @@ export default function EchoListItem({
               <MessageCircle size={14} color={colors.textMuted} />
               <Text style={styles.statText}>{echo.replies}</Text>
             </View>
+            {echo.listenCount !== undefined && (
+              <View style={styles.statItem}>
+                <Play size={14} color={colors.textMuted} />
+                <Text style={styles.statText}>{formatCount(echo.listenCount)}</Text>
+              </View>
+            )}
+            {echo.likes !== undefined && (
+              <View style={styles.statItem}>
+                <Heart size={14} color={echo.isLiked ? colors.error : colors.textMuted} />
+                <Text style={styles.statText}>{formatCount(echo.likes)}</Text>
+              </View>
+            )}
           </View>
           
           <View style={styles.voiceStyleBadge}>
@@ -147,7 +165,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    backgroundColor: 'rgba(220, 38, 38, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },

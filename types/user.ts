@@ -39,6 +39,9 @@ export interface UserEcho {
   createdAt: Date;
   tags: string[];
   isPublic: boolean;
+  listenCount?: number;
+  likes?: number;
+  isLiked?: boolean;
 }
 
 export interface UserDownload {
@@ -68,4 +71,22 @@ export interface EditProfileData {
   location: string;
   website: string;
   preferences: UserProfile['preferences'];
+}
+
+// API Post interface to match backend response
+export interface ApiPost {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar: string;
+  audio_url: string;
+  duration: number;
+  voice_style: string;
+  likes: number;
+  timestamp: string;
+  is_liked: boolean;
+  tags: string[];
+  content: string;
+  created_at: string;
+  listen_count: number;
 }

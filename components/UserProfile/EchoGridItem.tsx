@@ -7,7 +7,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Play, MessageCircle, Lock } from 'lucide-react-native';
+import { Play, MessageCircle, Lock, Heart } from 'lucide-react-native';
 import { UserEcho } from '@/types/user';
 import { useUserActivity } from '@/hooks/useUserActivity';
 import { colors, spacing, borderRadius, typography } from '@/styles/globalStyles';
@@ -34,6 +34,12 @@ export default function EchoGridItem({
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatCount = (count: number) => {
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
+    return count.toString();
   };
 
   return (
@@ -84,6 +90,18 @@ export default function EchoGridItem({
               <Text style={styles.duration}>
                 {formatDuration(echo.duration)}
               </Text>
+            )}
+            {echo.listenCount !== undefined && (
+              <View style={styles.statItem}>
+                <Play size={10} color={colors.textMuted} />
+                <Text style={styles.statText}>{formatCount(echo.listenCount)}</Text>
+              </View>
+            )}
+            {echo.likes !== undefined && (
+              <View style={styles.statItem}>
+                <Heart size={10} color={echo.isLiked ? colors.error : colors.textMuted} />
+                <Text style={styles.statText}>{formatCount(echo.likes)}</Text>
+              </View>
             )}
           </View>
           <Text style={styles.date}>
@@ -159,6 +177,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    flexWrap: 'wrap',
   },
   statItem: {
     flexDirection: 'row',

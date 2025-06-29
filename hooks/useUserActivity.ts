@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { UserActivity, UserEcho, UserDownload, UserFriend } from '@/types/user';
+import { UserActivity, UserEcho, UserDownload, UserFriend, ApiPost } from '@/types/user';
 import { getEchoHQPosts } from '@/data/postsDatabase';
 import { useSave } from '@/contexts/SaveContext';
+import { fetchUserPosts } from '@/utils/api';
 
 // Mock data generators
 const generateMockDownloads = (): UserDownload[] => [
@@ -64,6 +65,22 @@ const generateMockFriends = (): UserFriend[] => [
   },
 ];
 
+// Convert API post to UserEcho format
+const convertApiPostToUserEcho = (apiPost: ApiPost): UserEcho => ({
+  id: apiPost.id,
+  content: apiPost.content,
+  audioUrl: apiPost.audio_url,
+  duration: apiPost.duration,
+  voiceStyle: apiPost.voice_style,
+  replies: 0, // API doesn't provide replies count in this endpoint
+  createdAt: new Date(apiPost.created_at),
+  tags: apiPost.tags,
+  isPublic: true,
+  listenCount: apiPost.listen_count,
+  likes: apiPost.likes,
+  isLiked: apiPost.is_liked,
+});
+
 export function useUserActivity() {
   const [activity, setActivity] = useState<UserActivity | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,22 +92,33 @@ export function useUserActivity() {
     const loadActivity = async () => {
       try {
         setLoading(true);
+        setError(null);
         
-        // Get hardcoded EchoHQ posts
-        const echoHQPosts = getEchoHQPosts();
+        // Fetch user posts from API
+        const userPostsResult = await fetchUserPosts(0, 50); // Fetch up to 50 posts
+        let userEchoes: UserEcho[] = [];
         
-        // Convert hardcoded EchoHQ posts to UserEcho format
-        const userEchoes: UserEcho[] = echoHQPosts.map(post => ({
-          id: post.id,
-          content: post.content,
-          audioUrl: post.audioUrl,
-          duration: post.duration,
-          voiceStyle: post.voiceStyle,
-          replies: post.replies,
-          createdAt: post.createdAt,
-          tags: post.tags,
-          isPublic: true,
-        }));
+        if (userPostsResult.success && userPostsResult.data) {
+          // Convert API posts to UserEcho format
+          userEchoes = userPostsResult.data.map(convertApiPostToUserEcho);
+          console.log('Converted API posts to UserEchoes:', userEchoes.length);
+        } else {
+          console.warn('Failed to fetch user posts from API:', userPostsResult.error);
+          // Fallback to hardcoded EchoHQ posts if API fails
+          const echoHQPosts = getEchoHQPosts();
+          userEchoes = echoHQPosts.map(post => ({
+            id: post.id,
+            content: post.content,
+            audioUrl: post.audioUrl,
+            duration: post.duration,
+            voiceStyle: post.voiceStyle,
+            replies: post.replies,
+            createdAt: post.createdAt,
+            tags: post.tags,
+            isPublic: true,
+            listenCount: post.listenCount,
+          }));
+        }
 
         const savedEchoes: UserEcho[] = savedPosts.map(post => ({
           id: post.id,
@@ -111,6 +139,7 @@ export function useUserActivity() {
           friends: generateMockFriends(),
         });
       } catch (err) {
+        console.error('Error loading user activity:', err);
         setError('Failed to load user activity');
       } finally {
         setLoading(false);
@@ -149,6 +178,22 @@ export function useUserActivity() {
     return `${Math.floor(diffInSeconds / 31536000)}y ago`;
   };
 
+  const refreshUserPosts = async () => {
+    try {
+      setLoading(true);
+      const userPostsResult = await fetchUserPosts(0, 50);
+      
+      if (userPostsResult.success && userPostsResult.data && activity) {
+        const userEchoes = userPostsResult.data.map(convertApiPostToUserEcho);
+        setActivity(prev => prev ? { ...prev, userEchoes } : null);
+      }
+    } catch (err) {
+      console.error('Error refreshing user posts:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     activity,
     loading,
@@ -156,5 +201,6 @@ export function useUserActivity() {
     removeDownload,
     formatFileSize,
     getRelativeTime,
+    refreshUserPosts,
   };
 }

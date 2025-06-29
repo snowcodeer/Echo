@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  RefreshControl,
 } from 'react-native';
 import { Grid3x3 as Grid3X3, List, Plus } from 'lucide-react-native';
 import { UserEcho } from '@/types/user';
@@ -14,9 +15,11 @@ import EchoListItem from '../EchoListItem';
 
 interface UserEchoesTabProps {
   echoes: UserEcho[];
+  loading?: boolean;
+  onRefresh?: () => void;
 }
 
-export default function UserEchoesTab({ echoes }: UserEchoesTabProps) {
+export default function UserEchoesTab({ echoes, loading = false, onRefresh }: UserEchoesTabProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Sort by creation date (most recent first)
@@ -27,18 +30,31 @@ export default function UserEchoesTab({ echoes }: UserEchoesTabProps) {
   const publicEchoes = sortedEchoes.filter(echo => echo.isPublic);
   const privateEchoes = sortedEchoes.filter(echo => !echo.isPublic);
 
-  if (echoes.length === 0) {
+  if (echoes.length === 0 && !loading) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyTitle}>No echoes yet</Text>
-        <Text style={styles.emptySubtitle}>
-          Share your first voice echo to get started
-        </Text>
-        <TouchableOpacity style={styles.createButton}>
-          <Plus size={20} color={colors.textPrimary} />
-          <Text style={styles.createButtonText}>Create Echo</Text>
-        </TouchableOpacity>
-      </View>
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl
+              refreshing={loading}
+              onRefresh={onRefresh}
+              tintColor={colors.accent}
+              colors={[colors.accent]}
+            />
+          ) : undefined
+        }>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyTitle}>No echoes yet</Text>
+          <Text style={styles.emptySubtitle}>
+            Share your first voice echo to get started
+          </Text>
+          <TouchableOpacity style={styles.createButton}>
+            <Plus size={20} color={colors.textPrimary} />
+            <Text style={styles.createButtonText}>Create Echo</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     );
   }
 
@@ -82,7 +98,17 @@ export default function UserEchoesTab({ echoes }: UserEchoesTabProps) {
       <ScrollView 
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}>
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl
+              refreshing={loading}
+              onRefresh={onRefresh}
+              tintColor={colors.accent}
+              colors={[colors.accent]}
+            />
+          ) : undefined
+        }>
         {viewMode === 'grid' ? (
           <View style={styles.gridContainer}>
             {sortedEchoes.map((echo, index) => (
@@ -172,6 +198,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.xl,
+    minHeight: 400,
   },
   emptyTitle: {
     ...typography.bodyLarge,

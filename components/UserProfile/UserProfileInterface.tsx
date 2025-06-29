@@ -22,6 +22,7 @@ export default function UserProfileInterface() {
     activity, 
     loading: activityLoading, 
     error: activityError,
+    refreshUserPosts,
   } = useUserActivity();
 
   const handleEditProfile = () => {
@@ -49,8 +50,16 @@ export default function UserProfileInterface() {
   };
 
   const handleRetryActivity = () => {
-    // In a real implementation, this would trigger a refetch
-    console.log('Retrying activity fetch...');
+    // Refresh user posts when retrying
+    if (refreshUserPosts) {
+      refreshUserPosts();
+    }
+  };
+
+  const handleRefreshUserPosts = () => {
+    if (refreshUserPosts) {
+      refreshUserPosts();
+    }
   };
 
   if (userLoading) {
@@ -90,7 +99,7 @@ export default function UserProfileInterface() {
     isOwner: true, // Current user is always the owner of their profile
     followerCount: user.followerCount || 0,
     followingCount: user.followingCount || 0,
-    echoCount: user.echoCount || 0,
+    echoCount: activity?.userEchoes.length || 0, // Use actual count from API
     location: user.location,
     website: user.website,
     preferences: {
@@ -118,6 +127,7 @@ export default function UserProfileInterface() {
           loading={activityLoading}
           error={activityError}
           onRetry={handleRetryActivity}
+          onRefreshUserPosts={handleRefreshUserPosts}
         />
 
         {/* Edit Profile Modal */}

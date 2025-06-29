@@ -88,38 +88,60 @@ export function useUserActivity() {
   
   const { savedPosts } = useSave();
 
+  const loadUserPosts = async () => {
+    try {
+      console.log('🔄 Loading user posts from API...');
+      
+      // Fetch user posts from API
+      const userPostsResult = await fetchUserPosts(0, 50); // Fetch up to 50 posts
+      let userEchoes: UserEcho[] = [];
+      
+      if (userPostsResult.success && userPostsResult.data) {
+        // Convert API posts to UserEcho format
+        userEchoes = userPostsResult.data.map(convertApiPostToUserEcho);
+        console.log('✅ Successfully converted API posts to UserEchoes:', userEchoes.length);
+        console.log('📋 First post preview:', userEchoes[0] ? {
+          id: userEchoes[0].id,
+          content: userEchoes[0].content.substring(0, 50) + '...',
+          listenCount: userEchoes[0].listenCount,
+          likes: userEchoes[0].likes
+        } : 'No posts');
+      } else {
+        console.warn('⚠️ Failed to fetch user posts from API:', userPostsResult.error);
+        // Fallback to hardcoded EchoHQ posts if API fails
+        const echoHQPosts = getEchoHQPosts();
+        userEchoes = echoHQPosts.map(post => ({
+          id: post.id,
+          content: post.content,
+          audioUrl: post.audioUrl,
+          duration: post.duration,
+          voiceStyle: post.voiceStyle,
+          replies: post.replies,
+          createdAt: post.createdAt,
+          tags: post.tags,
+          isPublic: true,
+          listenCount: post.listenCount,
+        }));
+        console.log('📦 Using fallback EchoHQ posts:', userEchoes.length);
+      }
+
+      return userEchoes;
+    } catch (err) {
+      console.error('❌ Error loading user posts:', err);
+      throw err;
+    }
+  };
+
   useEffect(() => {
     const loadActivity = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // Fetch user posts from API
-        const userPostsResult = await fetchUserPosts(0, 50); // Fetch up to 50 posts
-        let userEchoes: UserEcho[] = [];
-        
-        if (userPostsResult.success && userPostsResult.data) {
-          // Convert API posts to UserEcho format
-          userEchoes = userPostsResult.data.map(convertApiPostToUserEcho);
-          console.log('Converted API posts to UserEchoes:', userEchoes.length);
-        } else {
-          console.warn('Failed to fetch user posts from API:', userPostsResult.error);
-          // Fallback to hardcoded EchoHQ posts if API fails
-          const echoHQPosts = getEchoHQPosts();
-          userEchoes = echoHQPosts.map(post => ({
-            id: post.id,
-            content: post.content,
-            audioUrl: post.audioUrl,
-            duration: post.duration,
-            voiceStyle: post.voiceStyle,
-            replies: post.replies,
-            createdAt: post.createdAt,
-            tags: post.tags,
-            isPublic: true,
-            listenCount: post.listenCount,
-          }));
-        }
+        // Load user posts
+        const userEchoes = await loadUserPosts();
 
+        // Convert saved posts to UserEcho format
         const savedEchoes: UserEcho[] = savedPosts.map(post => ({
           id: post.id,
           content: post.content,
@@ -138,8 +160,10 @@ export function useUserActivity() {
           userEchoes,
           friends: generateMockFriends(),
         });
+
+        console.log('🎉 Activity loaded successfully with', userEchoes.length, 'user echoes');
       } catch (err) {
-        console.error('Error loading user activity:', err);
+        console.error('❌ Error loading user activity:', err);
         setError('Failed to load user activity');
       } finally {
         setLoading(false);
@@ -180,15 +204,18 @@ export function useUserActivity() {
 
   const refreshUserPosts = async () => {
     try {
+      console.log('🔄 Refreshing user posts...');
       setLoading(true);
-      const userPostsResult = await fetchUserPosts(0, 50);
       
-      if (userPostsResult.success && userPostsResult.data && activity) {
-        const userEchoes = userPostsResult.data.map(convertApiPostToUserEcho);
+      const userEchoes = await loadUserPosts();
+      
+      if (activity) {
         setActivity(prev => prev ? { ...prev, userEchoes } : null);
+        console.log('✅ User posts refreshed successfully');
       }
     } catch (err) {
-      console.error('Error refreshing user posts:', err);
+      console.error('❌ Error refreshing user posts:', err);
+      setError('Failed to refresh user posts');
     } finally {
       setLoading(false);
     }

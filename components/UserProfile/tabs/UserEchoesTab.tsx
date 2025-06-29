@@ -20,7 +20,7 @@ interface UserEchoesTabProps {
 }
 
 export default function UserEchoesTab({ echoes, loading = false, onRefresh }: UserEchoesTabProps) {
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list'); // Default to list view for better data display
 
   // Sort by creation date (most recent first)
   const sortedEchoes = [...echoes].sort((a, b) => 
@@ -29,6 +29,13 @@ export default function UserEchoesTab({ echoes, loading = false, onRefresh }: Us
 
   const publicEchoes = sortedEchoes.filter(echo => echo.isPublic);
   const privateEchoes = sortedEchoes.filter(echo => !echo.isPublic);
+
+  console.log('📊 UserEchoesTab rendering with:', {
+    totalEchoes: echoes.length,
+    sortedEchoes: sortedEchoes.length,
+    loading,
+    hasRefresh: !!onRefresh
+  });
 
   if (echoes.length === 0 && !loading) {
     return (
@@ -47,12 +54,13 @@ export default function UserEchoesTab({ echoes, loading = false, onRefresh }: Us
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyTitle}>No echoes yet</Text>
           <Text style={styles.emptySubtitle}>
-            Share your first voice echo to get started
+            Your voice echoes from the API will appear here
           </Text>
-          <TouchableOpacity style={styles.createButton}>
-            <Plus size={20} color={colors.textPrimary} />
-            <Text style={styles.createButtonText}>Create Echo</Text>
-          </TouchableOpacity>
+          {onRefresh && (
+            <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
+              <Text style={styles.refreshButtonText}>Refresh</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     );
@@ -109,6 +117,14 @@ export default function UserEchoesTab({ echoes, loading = false, onRefresh }: Us
             />
           ) : undefined
         }>
+        
+        {/* Loading indicator */}
+        {loading && echoes.length > 0 && (
+          <View style={styles.loadingOverlay}>
+            <Text style={styles.loadingText}>Refreshing...</Text>
+          </View>
+        )}
+
         {viewMode === 'grid' ? (
           <View style={styles.gridContainer}>
             {sortedEchoes.map((echo, index) => (
@@ -117,7 +133,9 @@ export default function UserEchoesTab({ echoes, loading = false, onRefresh }: Us
                 echo={echo} 
                 index={index}
                 showPrivateIndicator
-                onPress={() => {/* Handle echo press */}}
+                onPress={() => {
+                  console.log('Echo pressed:', echo.id, echo.content.substring(0, 30) + '...');
+                }}
               />
             ))}
           </View>
@@ -128,7 +146,9 @@ export default function UserEchoesTab({ echoes, loading = false, onRefresh }: Us
                 key={echo.id} 
                 echo={echo}
                 showPrivateIndicator
-                onPress={() => {/* Handle echo press */}}
+                onPress={() => {
+                  console.log('Echo pressed:', echo.id, echo.content.substring(0, 30) + '...');
+                }}
               />
             ))}
           </View>
@@ -184,6 +204,20 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: spacing.lg,
   },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: spacing.md,
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  loadingText: {
+    ...typography.caption,
+    color: colors.accent,
+  },
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -213,16 +247,13 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: spacing.xl,
   },
-  createButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  refreshButton: {
     backgroundColor: colors.accent,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
-    gap: spacing.sm,
   },
-  createButtonText: {
+  refreshButtonText: {
     ...typography.button,
     color: colors.textPrimary,
   },

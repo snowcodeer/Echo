@@ -8,11 +8,12 @@ import {
   Image,
   RefreshControl,
   Alert,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Settings, User, Mail, Calendar, MailCheck, MapPin, Link as LinkIcon, Shield } from 'lucide-react-native';
+import { Settings, User, Mail, Calendar, MailCheck, MapPin, Link as LinkIcon, Shield, Play, Heart, Eye } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { makeAuthenticatedRequest } from '@/utils/api';
 import { globalStyles, colors, gradients, spacing, borderRadius, getResponsiveFontSize } from '@/styles/globalStyles';
@@ -35,10 +36,35 @@ interface ApiUser {
   [key: string]: any;
 }
 
+interface Post {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar: string;
+  audio_url: string;
+  duration: number;
+  voice_style: string;
+  likes: number;
+  timestamp: string;
+  is_liked: boolean;
+  tags: string[];
+  content: string;
+  created_at: string;
+  listen_count: number;
+}
+
+interface PostsResponse {
+  posts: Post[];
+  total: number;
+}
+
 export default function ProfileScreen() {
   const { isAuthenticated, loading: authLoading, signOut } = useAuth();
   const [apiUser, setApiUser] = useState<ApiUser | null>(null);
+  const [userPosts, setUserPosts] = useState<Post[]>([]);
+  const [postsTotal, setPostsTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [postsLoading, setPostsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bioExpanded, setBioExpanded] = useState(false);
@@ -82,15 +108,45 @@ export default function ProfileScreen() {
     }
   };
 
-  // Fetch profile on mount
+  // Fetch user's posts/echoes
+  const fetchUserPosts = async (isRefresh = false) => {
+    if (!isRefresh) {
+      setPostsLoading(true);
+    }
+    
+    try {
+      console.log('Fetching user posts from API...');
+      const response = await makeAuthenticatedRequest('/api/posts/my-posts?skip=0&limit=10');
+      
+      if (response.ok) {
+        const postsData: PostsResponse = await response.json();
+        console.log('User posts fetched successfully:', postsData);
+        setUserPosts(postsData.posts);
+        setPostsTotal(postsData.total);
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to fetch user posts:', response.status, errorData);
+      }
+    } catch (error) {
+      console.error('Network error fetching user posts:', error);
+    } finally {
+      setPostsLoading(false);
+    }
+  };
+
+  // Fetch profile and posts on mount
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       fetchUserProfile();
+      fetchUserPosts();
     }
   }, [isAuthenticated, authLoading]);
 
-  const handleRefresh = () => {
-    fetchUserProfile(true);
+  const handleRefresh = async () => {
+    await Promise.all([
+      fetchUserProfile(true),
+      fetchUserPosts(true)
+    ]);
   };
 
   const handleSettings = () => {
@@ -126,6 +182,82 @@ export default function ProfileScreen() {
       : username;
     return `${maskedUsername}@${domain}`;
   };
+
+  const formatDuration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const formatTimestamp = (timestamp: string): string => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInHours / 24);
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    if (diffInDays < 7) return `${diffInDays}d ago`;
+    
+    return date.toLocaleDateString();
+  };
+
+  // Render post item
+  const renderPostItem = ({ item }: { item: Post }) => (
+    <View style={styles.postItem}>
+      <View style={styles.postHeader}>
+        <View style={styles.postInfo}>
+          <Text style={[styles.postContent, { fontSize: getResponsiveFontSize(14) }]} numberOfLines={3}>
+            {item.content}
+          </Text>
+          <Text style={[styles.postTimestamp, { fontSize: getResponsiveFontSize(12) }]}>
+            {formatTimestamp(item.timestamp)}
+          </Text>
+        </View>
+        <TouchableOpacity style={styles.playButton}>
+          <Play size={16} color={colors.textPrimary} fill={colors.accent} />
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.postMeta}>
+        <Text style={[styles.postDuration, { fontSize: getResponsiveFontSize(12) }]}>
+          {formatDuration(item.duration)}
+        </Text>
+        <Text style={[styles.postStyle, { fontSize: getResponsiveFontSize(12) }]}>
+          {item.voice_style}
+        </Text>
+      </View>
+      
+      {item.tags.length > 0 && (
+        <View style={styles.postTags}>
+          {item.tags.map((tag, index) => (
+            <View key={index} style={styles.tag}>
+              <Text style={[styles.tagText, { fontSize: getResponsiveFontSize(10) }]}>
+                #{tag}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+      
+      <View style={styles.postStats}>
+        <View style={styles.statRow}>
+          <Heart size={14} color={item.is_liked ? colors.accent : colors.textMuted} 
+                fill={item.is_liked ? colors.accent : 'transparent'} />
+          <Text style={[styles.statText, { fontSize: getResponsiveFontSize(12) }]}>
+            {item.likes}
+          </Text>
+        </View>
+        <View style={styles.statRow}>
+          <Eye size={14} color={colors.textMuted} />
+          <Text style={[styles.statText, { fontSize: getResponsiveFontSize(12) }]}>
+            {item.listen_count}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
 
   // Show loading state while checking authentication
   if (authLoading) {
@@ -329,7 +461,7 @@ export default function ProfileScreen() {
                   </View>
                   <View style={styles.statItem}>
                     <Text style={[styles.statNumber, { fontSize: getResponsiveFontSize(20) }]}>
-                      {formatNumber(apiUser.echoCount || 0)}
+                      {formatNumber(postsTotal)}
                     </Text>
                     <Text style={[styles.statLabel, { fontSize: getResponsiveFontSize(12) }]}>
                       Echoes
@@ -344,7 +476,7 @@ export default function ProfileScreen() {
                   style={[globalStyles.tab, activeTab === 'echoes' && globalStyles.tabActive]}
                   onPress={() => setActiveTab('echoes')}>
                   <Text style={[globalStyles.tabText, activeTab === 'echoes' && globalStyles.tabTextActive]}>
-                    Your Echoes ({apiUser.echoCount || 0})
+                    Your Echoes ({postsTotal})
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -358,28 +490,46 @@ export default function ProfileScreen() {
 
               {/* Tab Content */}
               <View style={styles.tabContent}>
-                <View style={styles.emptyState}>
-                  <Text style={[styles.emptyStateText, { fontSize: getResponsiveFontSize(16) }]}>
-                    {activeTab === 'echoes' && 'No echoes yet'}
-                    {activeTab === 'friends' && 'No friends yet'}
-                  </Text>
-                  <Text style={[styles.emptyStateSubtext, { fontSize: getResponsiveFontSize(14) }]}>
-                    {activeTab === 'echoes' && 'Share your first voice echo to get started'}
-                    {activeTab === 'friends' && 'Connect with other users to see them here'}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Debug Section (Optional - can be removed in production) */}
-              <View style={styles.debugSection}>
-                <Text style={[styles.sectionTitle, { fontSize: getResponsiveFontSize(18) }]}>
-                  API Response (Debug)
-                </Text>
-                <View style={styles.debugContainer}>
-                  <Text style={[styles.debugText, { fontSize: getResponsiveFontSize(12) }]}>
-                    {JSON.stringify(apiUser, null, 2)}
-                  </Text>
-                </View>
+                {activeTab === 'echoes' && (
+                  <>
+                    {postsLoading ? (
+                      <View style={styles.loadingContainer}>
+                        <Text style={[styles.loadingText, { fontSize: getResponsiveFontSize(16) }]}>
+                          Loading echoes...
+                        </Text>
+                      </View>
+                    ) : userPosts.length > 0 ? (
+                      <FlatList
+                        data={userPosts}
+                        renderItem={renderPostItem}
+                        keyExtractor={(item) => item.id}
+                        style={styles.postsList}
+                        scrollEnabled={false}
+                        showsVerticalScrollIndicator={false}
+                      />
+                    ) : (
+                      <View style={styles.emptyState}>
+                        <Text style={[styles.emptyStateText, { fontSize: getResponsiveFontSize(16) }]}>
+                          No echoes yet
+                        </Text>
+                        <Text style={[styles.emptyStateSubtext, { fontSize: getResponsiveFontSize(14) }]}>
+                          Share your first voice echo to get started
+                        </Text>
+                      </View>
+                    )}
+                  </>
+                )}
+                
+                {activeTab === 'friends' && (
+                  <View style={styles.emptyState}>
+                    <Text style={[styles.emptyStateText, { fontSize: getResponsiveFontSize(16) }]}>
+                      No friends yet
+                    </Text>
+                    <Text style={[styles.emptyStateSubtext, { fontSize: getResponsiveFontSize(14) }]}>
+                      Connect with other users to see them here
+                    </Text>
+                  </View>
+                )}
               </View>
             </>
           )}
@@ -606,25 +756,90 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  sectionTitle: {
-    fontFamily: 'Inter-SemiBold',
-    color: colors.textPrimary,
-    marginBottom: spacing.lg,
+  postsList: {
+    flex: 1,
   },
-  debugSection: {
-    margin: spacing.xl,
-    marginBottom: spacing.xxl,
-  },
-  debugContainer: {
-    backgroundColor: colors.surfaceSecondary,
+  postItem: {
+    backgroundColor: colors.surface,
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.sm,
     padding: spacing.lg,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  debugText: {
+  postHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.sm,
+  },
+  postInfo: {
+    flex: 1,
+    marginRight: spacing.md,
+  },
+  postContent: {
+    fontFamily: 'Inter-Regular',
+    color: colors.textPrimary,
+    lineHeight: 20,
+    marginBottom: spacing.xs,
+  },
+  postTimestamp: {
     fontFamily: 'Inter-Regular',
     color: colors.textMuted,
-    lineHeight: 16,
+  },
+  playButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  postMeta: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  postDuration: {
+    fontFamily: 'Inter-Medium',
+    color: colors.accent,
+  },
+  postStyle: {
+    fontFamily: 'Inter-Regular',
+    color: colors.textMuted,
+    textTransform: 'capitalize',
+  },
+  postTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  tag: {
+    backgroundColor: colors.surfaceSecondary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+  },
+  tagText: {
+    fontFamily: 'Inter-Medium',
+    color: colors.accent,
+  },
+  postStats: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  statText: {
+    fontFamily: 'Inter-Regular',
+    color: colors.textMuted,
   },
 });

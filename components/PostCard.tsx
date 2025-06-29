@@ -8,6 +8,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
   Headphones, 
+  MessageCircle, 
   Share, 
   Download, 
   Play, 
@@ -15,6 +16,8 @@ import {
   X, 
   Bookmark,
   BookmarkCheck,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react-native';
 import { Post } from '@/data/postsDatabase';
 import { usePlay } from '@/contexts/PlayContext';
@@ -37,6 +40,8 @@ export default function PostCard({
   onStop,
   isFeatured = false,
 }: PostCardProps) {
+  const [showReplies, setShowReplies] = useState(false);
+  
   const { currentlyPlaying, getPlayCount } = usePlay();
   const { transcriptionsEnabled } = useTranscription();
   const { 
@@ -197,6 +202,22 @@ export default function PostCard({
             </Text>
           </View>
 
+          <TouchableOpacity 
+            style={globalStyles.actionButton}
+            onPress={() => post.hasReplies && setShowReplies(!showReplies)}>
+            <MessageCircle size={20} color={colors.textMuted} />
+            <Text style={globalStyles.actionText}>
+              {post.hasReplies ? post.replyPosts?.length || 0 : post.replies}
+            </Text>
+            {post.hasReplies && (
+              showReplies ? (
+                <ChevronUp size={16} color={colors.textMuted} />
+              ) : (
+                <ChevronDown size={16} color={colors.textMuted} />
+              )
+            )}
+          </TouchableOpacity>
+
           <TouchableOpacity style={globalStyles.actionButton}>
             <Share size={20} color={colors.textMuted} />
           </TouchableOpacity>
@@ -236,6 +257,164 @@ export default function PostCard({
             )}
           </TouchableOpacity>
         </View>
+
+        {/* Replies Section - Threads-style interface */}
+        {post.hasReplies && showReplies && post.replyPosts && (
+          <View style={{ marginTop: spacing.xl }}>
+            <View style={{ 
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              marginBottom: spacing.lg, 
+              gap: spacing.md 
+            }}>
+              <View style={{ height: 1, flex: 1, backgroundColor: colors.borderSecondary }} />
+              <Text style={{ 
+                fontSize: 14, 
+                fontFamily: 'Inter-SemiBold', 
+                color: colors.textMuted, 
+                paddingHorizontal: spacing.md 
+              }}>
+                Replies
+              </Text>
+            </View>
+            
+            {post.replyPosts.map((reply, index) => (
+              <View key={reply.id} style={{ flexDirection: 'row', marginBottom: spacing.md }}>
+                <View style={{ 
+                  width: 24, 
+                  alignItems: 'center', 
+                  marginRight: spacing.md 
+                }}>
+                  <View style={{ 
+                    width: 2, 
+                    height: '100%', 
+                    backgroundColor: colors.borderSecondary, 
+                    position: 'absolute', 
+                    top: 0 
+                  }} />
+                  <View style={{ 
+                    width: 8, 
+                    height: 8, 
+                    borderRadius: 4, 
+                    backgroundColor: colors.accent, 
+                    marginTop: spacing.sm 
+                  }} />
+                </View>
+                
+                <View style={{ flex: 1, borderRadius: borderRadius.md, overflow: 'hidden' }}>
+                  <LinearGradient
+                    colors={['#0a0a0a', '#1a1a1a']}
+                    style={{ padding: spacing.md }}>
+                    
+                    <View style={{ 
+                      flexDirection: 'row', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      marginBottom: spacing.sm 
+                    }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                        <Image source={{ uri: reply.avatar }} style={{ width: 28, height: 28, borderRadius: 14 }} />
+                        <View>
+                          <Text style={{ fontSize: 14, fontFamily: 'Inter-SemiBold', color: colors.textPrimary }}>
+                            {reply.displayName}
+                          </Text>
+                          <Text style={{ fontSize: 12, fontFamily: 'Inter-Regular', color: colors.accent }}>
+                            {reply.username}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={{ fontSize: 11, fontFamily: 'Inter-Regular', color: colors.textMuted }}>
+                        {reply.timestamp}
+                      </Text>
+                    </View>
+
+                    {/* Reply Content - Only show if transcriptions are enabled */}
+                    {transcriptionsEnabled && (
+                      <Text style={{ 
+                        fontSize: 14, 
+                        fontFamily: 'Inter-Regular', 
+                        color: colors.textSecondary, 
+                        lineHeight: 20, 
+                        marginBottom: spacing.md 
+                      }}>
+                        {reply.content}
+                      </Text>
+                    )}
+
+                    {/* Reply Audio Controls */}
+                    <View style={{ 
+                      flexDirection: 'row', 
+                      alignItems: 'center', 
+                      gap: spacing.sm, 
+                      marginBottom: spacing.sm 
+                    }}>
+                      <TouchableOpacity
+                        style={{ 
+                          width: 28, 
+                          height: 28, 
+                          borderRadius: 14, 
+                          backgroundColor: colors.accent, 
+                          alignItems: 'center', 
+                          justifyContent: 'center' 
+                        }}
+                        onPress={() => onPlay?.(reply.id, reply.duration)}>
+                        {currentlyPlaying === reply.id ? (
+                          <Pause size={16} color={colors.textPrimary} />
+                        ) : (
+                          <Play size={16} color={colors.textPrimary} />
+                        )}
+                      </TouchableOpacity>
+                      <Text style={{ 
+                        fontSize: 12, 
+                        fontFamily: 'Inter-Medium', 
+                        color: colors.textMuted 
+                      }}>
+                        {formatDuration(reply.duration)}
+                      </Text>
+                    </View>
+
+                    {/* Reply Tags */}
+                    <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm }}>
+                      {reply.tags.slice(0, 2).map((tag, tagIndex) => (
+                        <View key={tagIndex} style={{ 
+                          backgroundColor: 'rgba(139, 92, 246, 0.1)', 
+                          paddingHorizontal: spacing.sm, 
+                          paddingVertical: 2, 
+                          borderRadius: spacing.sm 
+                        }}>
+                          <Text style={{ 
+                            fontSize: 10, 
+                            fontFamily: 'Inter-Medium', 
+                            color: colors.accent 
+                          }}>
+                            #{tag}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+
+                    {/* Reply Actions */}
+                    <View style={{ flexDirection: 'row', gap: spacing.lg }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                        <Headphones size={16} color={colors.textMuted} />
+                        <Text style={{ 
+                          fontSize: 12, 
+                          fontFamily: 'Inter-Medium', 
+                          color: colors.textMuted 
+                        }}>
+                          {getPlayCount(reply.id)}
+                        </Text>
+                      </View>
+                      <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                        <Share size={16} color={colors.textMuted} />
+                      </TouchableOpacity>
+                    </View>
+                  </LinearGradient>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
       </LinearGradient>
     </View>
   );

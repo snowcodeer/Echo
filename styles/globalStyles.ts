@@ -313,7 +313,7 @@ export const globalStyles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   
-  // Audio controls
+  // Audio controls - Simplified without progress bar
   audioContainer: {
     marginBottom: spacing.lg,
   },
@@ -336,32 +336,7 @@ export const globalStyles = StyleSheet.create({
   
   progressContainer: {
     flex: 1,
-    gap: spacing.sm,
-  },
-  
-  progressTrack: {
-    height: 4,
-    backgroundColor: colors.borderSecondary,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.accent,
-    borderRadius: 2,
-  },
-  
-  timeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  
-  currentTime: {
-    ...typography.caption,
-    fontFamily: 'Inter-Medium',
-    color: colors.accent,
+    justifyContent: 'center',
   },
   
   totalTime: {
@@ -402,7 +377,7 @@ export const globalStyles = StyleSheet.create({
     color: colors.comedy,
   },
   
-  // Actions styles
+  // Actions styles - Simplified without comments
   actionsContainer: {
     flexDirection: 'row',
     alignItems: 'center',

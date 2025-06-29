@@ -12,8 +12,6 @@ export interface Post {
   tags: string[]; // Maximum 3 tags per post
   content: string;
   createdAt: Date;
-  hasReplies?: boolean;
-  replyPosts?: Post[];
   listenCount?: number; // New field for simulated listen counts
 }
 
@@ -58,73 +56,6 @@ function generateListenCount(post: Partial<Post>): number {
   return Math.max(baseCount, Math.floor(Math.random() * 50) + 10);
 }
 
-// Reply posts for the top two posts in For You feed
-const post1Replies: Post[] = [
-  {
-    id: 'reply_1_1',
-    username: '@sarah_speaks',
-    displayName: 'Sarah Kim',
-    avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
-    duration: 6,
-    voiceStyle: 'Warm Response',
-    replies: 0,
-    timestamp: '1h',
-    tags: ['response', 'connection'],
-    content: 'This is so true! I had a similar experience last week at a bookstore. Sometimes the universe puts exactly the right person in your path when you need them most.',
-    createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
-    listenCount: 127,
-  },
-  {
-    id: 'reply_1_2',
-    username: '@wisdom_voice',
-    displayName: 'Wisdom Voice',
-    avatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
-    duration: 8,
-    voiceStyle: 'Thoughtful Reflection',
-    replies: 0,
-    timestamp: '45m',
-    tags: ['wisdom', 'serendipity'],
-    content: 'Beautiful reminder that meaningful connections often happen in the most unexpected places. These chance encounters teach us to stay open and present in every moment.',
-    createdAt: new Date(Date.now() - 45 * 60 * 1000),
-    listenCount: 189,
-  },
-];
-
-const post2Replies: Post[] = [
-  {
-    id: 'reply_2_1',
-    username: '@energy_boost',
-    displayName: 'Energy Boost',
-    avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
-    duration: 5,
-    voiceStyle: 'Enthusiastic Agreement',
-    replies: 0,
-    timestamp: '3h',
-    tags: ['energy', 'positivity'],
-    content: 'YES! Energy is everything! I love how you put this - it really is about choosing your vibe and watching it ripple out into the world.',
-    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
-    listenCount: 98,
-  },
-  {
-    id: 'reply_2_2',
-    username: '@midnight_thinker',
-    displayName: 'MidnightThinker',
-    avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
-    duration: 9,
-    voiceStyle: 'Deep Contemplation',
-    replies: 0,
-    timestamp: '2h',
-    tags: ['reflection', 'impact'],
-    content: 'This makes me think about how we\'re all walking around broadcasting our internal state. What a responsibility and opportunity that is - to be intentional about the energy we share.',
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    listenCount: 156,
-  },
-];
-
 // Centralized post database - all posts 5-10 seconds with max 3 tags and simulated listen counts
 export const postsDatabase: Post[] = [
   {
@@ -140,8 +71,6 @@ export const postsDatabase: Post[] = [
     tags: ['deepthoughts', 'philosophy', 'mindfulness'],
     content: 'Just had the most incredible conversation with a stranger at the coffee shop. Sometimes the best connections happen when you least expect them. We talked about everything from philosophy to our favorite books, and I left feeling so inspired.',
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    hasReplies: true,
-    replyPosts: post1Replies,
     listenCount: 487,
   },
   {
@@ -157,8 +86,6 @@ export const postsDatabase: Post[] = [
     tags: ['motivation', 'energy', 'morning'],
     content: 'Morning motivation: Your energy introduces you before you even speak. Today I\'m choosing to radiate positivity and see how it transforms not just my day, but the days of everyone I encounter.',
     createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
-    hasReplies: true,
-    replyPosts: post2Replies,
     listenCount: 312,
   },
   {
@@ -433,9 +360,6 @@ export const postsDatabase: Post[] = [
     createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000),
     listenCount: 892,
   },
-  // Add reply posts to the database
-  ...post1Replies,
-  ...post2Replies,
 ];
 
 // Apply generated listen counts to posts that don't have them

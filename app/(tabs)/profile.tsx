@@ -13,8 +13,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Settings, User, Mail, Calendar, MailCheck, MapPin, Link as LinkIcon, Shield, Play, Heart, Eye } from 'lucide-react-native';
+import { Settings, User, Mail, Calendar, MailCheck, MapPin, Link as LinkIcon, Shield, Play, Pause, Heart, Eye } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
+import { usePlay } from '@/contexts/PlayContext';
 import { makeAuthenticatedRequest } from '@/utils/api';
 import { globalStyles, colors, gradients, spacing, borderRadius, getResponsiveFontSize } from '@/styles/globalStyles';
 
@@ -60,6 +61,14 @@ interface PostsResponse {
 
 export default function ProfileScreen() {
   const { isAuthenticated, loading: authLoading, signOut } = useAuth();
+  const { 
+    currentlyPlaying, 
+    setCurrentlyPlaying, 
+    incrementPlayCount, 
+    getPlayCount,
+    hasPlayed 
+  } = usePlay();
+  
   const [apiUser, setApiUser] = useState<ApiUser | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [postsTotal, setPostsTotal] = useState(0);
@@ -69,6 +78,10 @@ export default function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [bioExpanded, setBioExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState('echoes');
+  
+  // Play progress tracking
+  const [playProgress, setPlayProgress] = useState<Record<string, number>>({});
+  const [playTimers, setPlayTimers] = useState<Record<string, NodeJS.Timeout>>({});
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -133,6 +146,76 @@ export default function ProfileScreen() {
       setPostsLoading(false);
     }
   };
+
+  // Play functionality for posts
+  const handlePlay = (postId: string, duration: number) => {
+    // Stop any currently playing audio
+    if (currentlyPlaying && currentlyPlaying !== postId) {
+      handleStop(currentlyPlaying);
+    }
+
+    if (currentlyPlaying === postId) {
+      // Pause current audio
+      handleStop(postId);
+    } else {
+      // Start playing
+      setCurrentlyPlaying(postId);
+      
+      // Start progress simulation
+      const startTime = Date.now();
+      const timer = setInterval(() => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        setPlayProgress(prev => ({
+          ...prev,
+          [postId]: progress
+        }));
+
+        // Increment play count after 5 seconds if not played before
+        if (elapsed >= 5 && !hasPlayed(postId)) {
+          incrementPlayCount(postId);
+        }
+
+        // Stop when complete
+        if (progress >= 1) {
+          handleStop(postId);
+        }
+      }, 100);
+
+      setPlayTimers(prev => ({
+        ...prev,
+        [postId]: timer
+      }));
+    }
+  };
+
+  const handleStop = (postId: string) => {
+    setCurrentlyPlaying(null);
+    
+    // Clear timer
+    if (playTimers[postId]) {
+      clearInterval(playTimers[postId]);
+      setPlayTimers(prev => {
+        const newTimers = { ...prev };
+        delete newTimers[postId];
+        return newTimers;
+      });
+    }
+    
+    // Reset progress
+    setPlayProgress(prev => ({
+      ...prev,
+      [postId]: 0
+    }));
+  };
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(playTimers).forEach(timer => clearInterval(timer));
+    };
+  }, []);
 
   // Fetch profile and posts on mount
   useEffect(() => {
@@ -203,7 +286,14 @@ export default function ProfileScreen() {
     return date.toLocaleDateString();
   };
 
-  // Render post item
+  const formatCurrentTime = (progress: number, duration: number) => {
+    const currentSeconds = Math.floor(progress * duration);
+    const mins = Math.floor(currentSeconds / 60);
+    const secs = currentSeconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Render post item with full play functionality
   const renderPostItem = ({ item }: { item: Post }) => (
     <View style={styles.postItem}>
       <View style={styles.postHeader}>
@@ -215,10 +305,36 @@ export default function ProfileScreen() {
             {formatTimestamp(item.timestamp)}
           </Text>
         </View>
-        <TouchableOpacity style={styles.playButton}>
-          <Play size={16} color={colors.textPrimary} fill={colors.accent} />
+        <TouchableOpacity 
+          style={styles.playButton}
+          onPress={() => handlePlay(item.id, item.duration)}>
+          {currentlyPlaying === item.id ? (
+            <Pause size={16} color={colors.textPrimary} />
+          ) : (
+            <Play size={16} color={colors.textPrimary} />
+          )}
         </TouchableOpacity>
       </View>
+      
+      {/* Audio Progress Bar */}
+      {currentlyPlaying === item.id && (
+        <View style={styles.progressContainer}>
+          <View style={styles.progressTrack}>
+            <View style={[
+              styles.progressFill, 
+              { width: `${(playProgress[item.id] || 0) * 100}%` }
+            ]} />
+          </View>
+          <View style={styles.timeContainer}>
+            <Text style={[styles.currentTime, { fontSize: getResponsiveFontSize(10) }]}>
+              {formatCurrentTime(playProgress[item.id] || 0, item.duration)}
+            </Text>
+            <Text style={[styles.totalTime, { fontSize: getResponsiveFontSize(10) }]}>
+              {formatDuration(item.duration)}
+            </Text>
+          </View>
+        </View>
+      )}
       
       <View style={styles.postMeta}>
         <Text style={[styles.postDuration, { fontSize: getResponsiveFontSize(12) }]}>
@@ -252,7 +368,7 @@ export default function ProfileScreen() {
         <View style={styles.statRow}>
           <Eye size={14} color={colors.textMuted} />
           <Text style={[styles.statText, { fontSize: getResponsiveFontSize(12) }]}>
-            {item.listen_count}
+            {getPlayCount(item.id) + item.listen_count}
           </Text>
         </View>
       </View>
@@ -792,9 +908,37 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.surfaceSecondary,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  progressContainer: {
+    marginBottom: spacing.sm,
+  },
+  progressTrack: {
+    height: 4,
+    backgroundColor: colors.borderSecondary,
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginBottom: spacing.xs,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.accent,
+    borderRadius: 2,
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  currentTime: {
+    fontFamily: 'Inter-Medium',
+    color: colors.accent,
+  },
+  totalTime: {
+    fontFamily: 'Inter-Medium',
+    color: colors.textMuted,
   },
   postMeta: {
     flexDirection: 'row',

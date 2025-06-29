@@ -1,5 +1,5 @@
 "use dom";
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState } from "react";
 import { useConversation } from "@11labs/react";
 import { View, Pressable, StyleSheet } from "react-native";
 import type { Message } from "../conversational-ai/ChatMessage";
@@ -57,23 +57,13 @@ function extractEchoContent(userMessage) {
 export default function ConvAiDOMComponent({
   platform,
   onMessage,
-  onEchoContentExtracted,
 }: {
   dom?: import("expo/dom").DOMProps;
   platform: string;
   onMessage: (message: Message) => void;
-  onEchoContentExtracted?: (content: string) => void;
 }) {
   // State to store extracted echo content
   const [echoContent, setEchoContent] = useState(null);
-
-  // Watch for changes in echoContent and notify parent
-  useEffect(() => {
-    if (echoContent && onEchoContentExtracted) {
-      console.log("🚀 Notifying parent about echo content:", echoContent);
-      onEchoContentExtracted(echoContent);
-    }
-  }, [echoContent, onEchoContentExtracted]);
 
   const conversation = useConversation({
     onConnect: () => console.log("Connected"),
@@ -90,6 +80,9 @@ export default function ConvAiDOMComponent({
       if (extractedEcho) {
         console.log("🔊 Echo content extracted:", extractedEcho);
         setEchoContent(extractedEcho);
+        
+        // You can also do additional processing here
+        // For example, trigger specific actions based on the echo content
       } else {
         console.log("No echo content found in message");
       }
@@ -105,20 +98,17 @@ export default function ConvAiDOMComponent({
     logMessage: async ({ message }) => {
       console.log(message);
     },
-    echoMe: async ({ postContent }) => {
-      console.log("🔧 echoMe tool called with post content:", postContent);
+    echoMe: async ({ message }) => {
+      console.log("🔧 echoMe tool called with:", message);
       
-      if (postContent && typeof postContent === 'string' && postContent.trim()) {
-        console.log("🔊 Setting echo content from tool:", postContent);
-        setEchoContent(postContent.trim());
-        
-        // Also notify parent immediately
-        if (onEchoContentExtracted) {
-          onEchoContentExtracted(postContent.trim());
-        }
+      // Extract content from the tool call as well
+      const extractedEcho = extractEchoContent(message);
+      if (extractedEcho) {
+        console.log("🔊 Echo content from tool:", extractedEcho);
+        setEchoContent(extractedEcho);
       }
       
-      return "Post content received and will be processed";
+      console.log(message);
     },
     getPostContent: async () => {
       console.log("🚀 getPostContent called - starting to fetch post content");

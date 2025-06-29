@@ -13,9 +13,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Settings, User, Mail, Calendar, MailCheck, MapPin, Link as LinkIcon, Shield, Play, Pause, Heart, Eye } from 'lucide-react-native';
+import { Audio } from 'expo-av';
+import { Settings, User, Mail, Calendar, MailCheck, MapPin, Link as LinkIcon, Shield, Play, Pause, Loader, Heart, Eye } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
-import { usePlay } from '@/contexts/PlayContext';
 import { makeAuthenticatedRequest } from '@/utils/api';
 import { globalStyles, colors, gradients, spacing, borderRadius, getResponsiveFontSize } from '@/styles/globalStyles';
 
@@ -61,14 +61,6 @@ interface PostsResponse {
 
 export default function ProfileScreen() {
   const { isAuthenticated, loading: authLoading, signOut } = useAuth();
-  const { 
-    currentlyPlaying, 
-    setCurrentlyPlaying, 
-    incrementPlayCount, 
-    getPlayCount,
-    hasPlayed 
-  } = usePlay();
-  
   const [apiUser, setApiUser] = useState<ApiUser | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [postsTotal, setPostsTotal] = useState(0);
@@ -79,9 +71,11 @@ export default function ProfileScreen() {
   const [bioExpanded, setBioExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState('echoes');
   
-  // Play progress tracking
-  const [playProgress, setPlayProgress] = useState<Record<string, number>>({});
-  const [playTimers, setPlayTimers] = useState<Record<string, NodeJS.Timeout>>({});
+  // Audio playback state
+  const [currentSound, setCurrentSound] = useState<Audio.Sound | null>(null);
+  const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
+  const [audioLoading, setAudioLoading] = useState<string | null>(null);
+  const [playbackStatus, setPlaybackStatus] = useState<any>(null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -89,6 +83,121 @@ export default function ProfileScreen() {
       router.replace('/login');
     }
   }, [isAuthenticated, authLoading]);
+
+  // Configure audio mode
+  useEffect(() => {
+    const configureAudio = async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: false,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+      } catch (error) {
+        console.warn('Error configuring audio:', error);
+      }
+    };
+    
+    configureAudio();
+  }, []);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (currentSound) {
+        currentSound.unloadAsync();
+      }
+    };
+  }, [currentSound]);
+
+  // Audio playback functions
+  const playAudio = async (audioUrl: string, postId: string) => {
+    try {
+      // Stop current audio if playing
+      if (currentSound) {
+        await currentSound.unloadAsync();
+        setCurrentSound(null);
+        setCurrentlyPlayingId(null);
+      }
+
+      setAudioLoading(postId);
+      
+      console.log('Loading audio:', audioUrl);
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: audioUrl },
+        { shouldPlay: true },
+        onPlaybackStatusUpdate
+      );
+
+      setCurrentSound(sound);
+      setCurrentlyPlayingId(postId);
+      setAudioLoading(null);
+      
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      setAudioLoading(null);
+      Alert.alert('Audio Error', 'Failed to play audio. Please try again.');
+    }
+  };
+
+  const pauseAudio = async () => {
+    try {
+      if (currentSound) {
+        await currentSound.pauseAsync();
+      }
+    } catch (error) {
+      console.error('Error pausing audio:', error);
+    }
+  };
+
+  const resumeAudio = async () => {
+    try {
+      if (currentSound) {
+        await currentSound.playAsync();
+      }
+    } catch (error) {
+      console.error('Error resuming audio:', error);
+    }
+  };
+
+  const stopAudio = async () => {
+    try {
+      if (currentSound) {
+        await currentSound.unloadAsync();
+        setCurrentSound(null);
+        setCurrentlyPlayingId(null);
+        setPlaybackStatus(null);
+      }
+    } catch (error) {
+      console.error('Error stopping audio:', error);
+    }
+  };
+
+  const onPlaybackStatusUpdate = (status: any) => {
+    setPlaybackStatus(status);
+    
+    if (status.didJustFinish) {
+      setCurrentlyPlayingId(null);
+      setCurrentSound(null);
+      setPlaybackStatus(null);
+    }
+  };
+
+  const handleAudioPress = async (audioUrl: string, postId: string) => {
+    if (currentlyPlayingId === postId) {
+      // Currently playing this audio
+      if (playbackStatus?.isPlaying) {
+        await pauseAudio();
+      } else {
+        await resumeAudio();
+      }
+    } else {
+      // Play new audio
+      await playAudio(audioUrl, postId);
+    }
+  };
 
   // Fetch user profile from API
   const fetchUserProfile = async (isRefresh = false) => {
@@ -147,76 +256,6 @@ export default function ProfileScreen() {
     }
   };
 
-  // Play functionality for posts
-  const handlePlay = (postId: string, duration: number) => {
-    // Stop any currently playing audio
-    if (currentlyPlaying && currentlyPlaying !== postId) {
-      handleStop(currentlyPlaying);
-    }
-
-    if (currentlyPlaying === postId) {
-      // Pause current audio
-      handleStop(postId);
-    } else {
-      // Start playing
-      setCurrentlyPlaying(postId);
-      
-      // Start progress simulation
-      const startTime = Date.now();
-      const timer = setInterval(() => {
-        const elapsed = (Date.now() - startTime) / 1000;
-        const progress = Math.min(elapsed / duration, 1);
-        
-        setPlayProgress(prev => ({
-          ...prev,
-          [postId]: progress
-        }));
-
-        // Increment play count after 5 seconds if not played before
-        if (elapsed >= 5 && !hasPlayed(postId)) {
-          incrementPlayCount(postId);
-        }
-
-        // Stop when complete
-        if (progress >= 1) {
-          handleStop(postId);
-        }
-      }, 100);
-
-      setPlayTimers(prev => ({
-        ...prev,
-        [postId]: timer
-      }));
-    }
-  };
-
-  const handleStop = (postId: string) => {
-    setCurrentlyPlaying(null);
-    
-    // Clear timer
-    if (playTimers[postId]) {
-      clearInterval(playTimers[postId]);
-      setPlayTimers(prev => {
-        const newTimers = { ...prev };
-        delete newTimers[postId];
-        return newTimers;
-      });
-    }
-    
-    // Reset progress
-    setPlayProgress(prev => ({
-      ...prev,
-      [postId]: 0
-    }));
-  };
-
-  // Cleanup timers on unmount
-  useEffect(() => {
-    return () => {
-      Object.values(playTimers).forEach(timer => clearInterval(timer));
-    };
-  }, []);
-
   // Fetch profile and posts on mount
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
@@ -226,6 +265,11 @@ export default function ProfileScreen() {
   }, [isAuthenticated, authLoading]);
 
   const handleRefresh = async () => {
+    // Stop any playing audio during refresh
+    if (currentSound) {
+      await stopAudio();
+    }
+    
     await Promise.all([
       fetchUserProfile(true),
       fetchUserPosts(true)
@@ -286,55 +330,40 @@ export default function ProfileScreen() {
     return date.toLocaleDateString();
   };
 
-  const formatCurrentTime = (progress: number, duration: number) => {
-    const currentSeconds = Math.floor(progress * duration);
-    const mins = Math.floor(currentSeconds / 60);
-    const secs = currentSeconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Render post item with full play functionality
-  const renderPostItem = ({ item }: { item: Post }) => (
-    <View style={styles.postItem}>
-      <View style={styles.postHeader}>
-        <View style={styles.postInfo}>
-          <Text style={[styles.postContent, { fontSize: getResponsiveFontSize(14) }]} numberOfLines={3}>
-            {item.content}
-          </Text>
-          <Text style={[styles.postTimestamp, { fontSize: getResponsiveFontSize(12) }]}>
-            {formatTimestamp(item.timestamp)}
-          </Text>
-        </View>
-        <TouchableOpacity 
-          style={styles.playButton}
-          onPress={() => handlePlay(item.id, item.duration)}>
-          {currentlyPlaying === item.id ? (
-            <Pause size={16} color={colors.textPrimary} />
-          ) : (
-            <Play size={16} color={colors.textPrimary} />
-          )}
-        </TouchableOpacity>
-      </View>
-      
-      {/* Audio Progress Bar */}
-      {currentlyPlaying === item.id && (
-        <View style={styles.progressContainer}>
-          <View style={styles.progressTrack}>
-            <View style={[
-              styles.progressFill, 
-              { width: `${(playProgress[item.id] || 0) * 100}%` }
-            ]} />
-          </View>
-          <View style={styles.timeContainer}>
-            <Text style={[styles.currentTime, { fontSize: getResponsiveFontSize(10) }]}>
-              {formatCurrentTime(playProgress[item.id] || 0, item.duration)}
+  // Render post item
+  const renderPostItem = ({ item }: { item: Post }) => {
+    const isCurrentlyPlaying = currentlyPlayingId === item.id;
+    const isLoading = audioLoading === item.id;
+    const isPlaying = isCurrentlyPlaying && playbackStatus?.isPlaying;
+    
+    return (
+      <View style={styles.postItem}>
+        <View style={styles.postHeader}>
+          <View style={styles.postInfo}>
+            <Text style={[styles.postContent, { fontSize: getResponsiveFontSize(14) }]} numberOfLines={3}>
+              {item.content}
             </Text>
-            <Text style={[styles.totalTime, { fontSize: getResponsiveFontSize(10) }]}>
-              {formatDuration(item.duration)}
+            <Text style={[styles.postTimestamp, { fontSize: getResponsiveFontSize(12) }]}>
+              {formatTimestamp(item.timestamp)}
             </Text>
           </View>
+          <TouchableOpacity 
+            style={[
+              styles.playButton, 
+              isCurrentlyPlaying && styles.playButtonActive
+            ]}
+            onPress={() => handleAudioPress(item.audio_url, item.id)}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader size={16} color={colors.textPrimary} />
+            ) : isPlaying ? (
+              <Pause size={16} color={colors.textPrimary} fill={colors.accent} />
+            ) : (
+              <Play size={16} color={colors.textPrimary} fill={isCurrentlyPlaying ? colors.accent : 'transparent'} />
+            )}
+          </TouchableOpacity>
         </View>
-      )}
       
       <View style={styles.postMeta}>
         <Text style={[styles.postDuration, { fontSize: getResponsiveFontSize(12) }]}>
@@ -368,12 +397,12 @@ export default function ProfileScreen() {
         <View style={styles.statRow}>
           <Eye size={14} color={colors.textMuted} />
           <Text style={[styles.statText, { fontSize: getResponsiveFontSize(12) }]}>
-            {getPlayCount(item.id) + item.listen_count}
+            {item.listen_count}
           </Text>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   // Show loading state while checking authentication
   if (authLoading) {
@@ -908,16 +937,22 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  playButtonActive: {
+    backgroundColor: colors.accent + '20', // Add transparency
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
   progressContainer: {
+    marginTop: spacing.sm,
     marginBottom: spacing.sm,
   },
-  progressTrack: {
-    height: 4,
-    backgroundColor: colors.borderSecondary,
+  progressBar: {
+    height: 3,
+    backgroundColor: colors.surfaceSecondary,
     borderRadius: 2,
     overflow: 'hidden',
     marginBottom: spacing.xs,
@@ -927,18 +962,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     borderRadius: 2,
   },
-  timeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  currentTime: {
-    fontFamily: 'Inter-Medium',
-    color: colors.accent,
-  },
-  totalTime: {
-    fontFamily: 'Inter-Medium',
+  progressText: {
+    fontFamily: 'Inter-Regular',
     color: colors.textMuted,
+    textAlign: 'center',
   },
   postMeta: {
     flexDirection: 'row',

@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Audio } from 'expo-av';
-import { Settings, User, Mail, Calendar, MailCheck, MapPin, Link as LinkIcon, Shield, Play, Pause, Loader, Heart, Eye } from 'lucide-react-native';
+import { Settings, User, Mail, Calendar, MailCheck, MapPin, Link as LinkIcon, Shield, Play, Heart, Eye } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { makeAuthenticatedRequest } from '@/utils/api';
 import { globalStyles, colors, gradients, spacing, borderRadius, getResponsiveFontSize } from '@/styles/globalStyles';
@@ -70,12 +70,6 @@ export default function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [bioExpanded, setBioExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState('echoes');
-  
-  // Audio playback state
-  const [currentSound, setCurrentSound] = useState<Audio.Sound | null>(null);
-  const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
-  const [audioLoading, setAudioLoading] = useState<string | null>(null);
-  const [playbackStatus, setPlaybackStatus] = useState<any>(null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -84,118 +78,22 @@ export default function ProfileScreen() {
     }
   }, [isAuthenticated, authLoading]);
 
-  // Configure audio mode
-  useEffect(() => {
-    const configureAudio = async () => {
-      try {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          staysActiveInBackground: false,
-          playsInSilentModeIOS: true,
-          shouldDuckAndroid: true,
-          playThroughEarpieceAndroid: false,
-        });
-      } catch (error) {
-        console.warn('Error configuring audio:', error);
-      }
-    };
-    
-    configureAudio();
-  }, []);
-
-  // Cleanup audio on unmount
-  useEffect(() => {
-    return () => {
-      if (currentSound) {
-        currentSound.unloadAsync();
-      }
-    };
-  }, [currentSound]);
-
-  // Audio playback functions
-  const playAudio = async (audioUrl: string, postId: string) => {
+  // Simple audio play function
+  const playAudio = async (audioUrl: string) => {
     try {
-      // Stop current audio if playing
-      if (currentSound) {
-        await currentSound.unloadAsync();
-        setCurrentSound(null);
-        setCurrentlyPlayingId(null);
-      }
-
-      setAudioLoading(postId);
+      console.log('Playing audio:', audioUrl);
+      const { sound } = await Audio.Sound.createAsync({ uri: audioUrl });
+      await sound.playAsync();
       
-      console.log('Loading audio:', audioUrl);
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: audioUrl },
-        { shouldPlay: true },
-        onPlaybackStatusUpdate
-      );
-
-      setCurrentSound(sound);
-      setCurrentlyPlayingId(postId);
-      setAudioLoading(null);
-      
+      // Cleanup after playing
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.didJustFinish) {
+          sound.unloadAsync();
+        }
+      });
     } catch (error) {
       console.error('Error playing audio:', error);
-      setAudioLoading(null);
       Alert.alert('Audio Error', 'Failed to play audio. Please try again.');
-    }
-  };
-
-  const pauseAudio = async () => {
-    try {
-      if (currentSound) {
-        await currentSound.pauseAsync();
-      }
-    } catch (error) {
-      console.error('Error pausing audio:', error);
-    }
-  };
-
-  const resumeAudio = async () => {
-    try {
-      if (currentSound) {
-        await currentSound.playAsync();
-      }
-    } catch (error) {
-      console.error('Error resuming audio:', error);
-    }
-  };
-
-  const stopAudio = async () => {
-    try {
-      if (currentSound) {
-        await currentSound.unloadAsync();
-        setCurrentSound(null);
-        setCurrentlyPlayingId(null);
-        setPlaybackStatus(null);
-      }
-    } catch (error) {
-      console.error('Error stopping audio:', error);
-    }
-  };
-
-  const onPlaybackStatusUpdate = (status: any) => {
-    setPlaybackStatus(status);
-    
-    if (status.didJustFinish) {
-      setCurrentlyPlayingId(null);
-      setCurrentSound(null);
-      setPlaybackStatus(null);
-    }
-  };
-
-  const handleAudioPress = async (audioUrl: string, postId: string) => {
-    if (currentlyPlayingId === postId) {
-      // Currently playing this audio
-      if (playbackStatus?.isPlaying) {
-        await pauseAudio();
-      } else {
-        await resumeAudio();
-      }
-    } else {
-      // Play new audio
-      await playAudio(audioUrl, postId);
     }
   };
 
@@ -265,11 +163,6 @@ export default function ProfileScreen() {
   }, [isAuthenticated, authLoading]);
 
   const handleRefresh = async () => {
-    // Stop any playing audio during refresh
-    if (currentSound) {
-      await stopAudio();
-    }
-    
     await Promise.all([
       fetchUserProfile(true),
       fetchUserPosts(true)
@@ -940,32 +833,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  playButtonActive: {
-    backgroundColor: colors.accent + '20', // Add transparency
-    borderWidth: 1,
-    borderColor: colors.accent,
-  },
-  progressContainer: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  progressBar: {
-    height: 3,
-    backgroundColor: colors.surfaceSecondary,
-    borderRadius: 2,
-    overflow: 'hidden',
-    marginBottom: spacing.xs,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.accent,
-    borderRadius: 2,
-  },
-  progressText: {
-    fontFamily: 'Inter-Regular',
-    color: colors.textMuted,
-    textAlign: 'center',
   },
   postMeta: {
     flexDirection: 'row',

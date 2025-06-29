@@ -1,120 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Tabs } from 'expo-router';
-import { Platform, View, StyleSheet, Alert } from 'react-native';
+import { Platform, View, StyleSheet } from 'react-native';
 import { Chrome as Home, Bookmark, Mic, Compass, User } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { router } from 'expo-router';
 import BoltBadge from '@/components/BoltBadge';
 import ConvAiDOMComponent from '@/conversational-ai/ConvAI';
 import { Message } from '@/components/ChatMessage';
-import { addUserPost } from '@/data/profile';
-import { Post } from '@/data/postsDatabase';
 import { colors, spacing, borderRadius, shadows } from '@/styles/globalStyles';
 
 export default function TabLayout() {
   const { isAuthenticated, loading } = useAuth();
-  const [aiPostContent, setAiPostContent] = useState<string | null>(null);
 
   // Handle AI messages
   const handleAIMessage = (message: Message) => {
     console.log('AI Message:', message);
     // You can handle the AI messages here - perhaps show them in a toast or modal
-  };
-
-  // Handle extracted echo content from AI
-  const handleEchoContentExtracted = (content: string) => {
-    console.log('🎯 Echo content extracted in layout:', content);
-    setAiPostContent(content);
-  };
-
-  // Create AI post when content is extracted
-  useEffect(() => {
-    if (aiPostContent) {
-      createAIPost(aiPostContent);
-    }
-  }, [aiPostContent]);
-
-  const createAIPost = async (content: string) => {
-    try {
-      console.log('🚀 Creating AI post with content:', content);
-      
-      // Estimate duration based on content length (roughly 150 words per minute for speech)
-      const wordCount = content.split(' ').length;
-      const estimatedDuration = Math.max(Math.min(Math.ceil((wordCount / 150) * 60), 10), 5);
-      
-      // Generate simple tags based on content
-      const generateTags = (text: string): string[] => {
-        const lowerText = text.toLowerCase();
-        const tags: string[] = [];
-        
-        if (lowerText.includes('ai') || lowerText.includes('artificial')) {
-          tags.push('ai');
-        }
-        if (lowerText.includes('thought') || lowerText.includes('think')) {
-          tags.push('thoughts');
-        }
-        if (lowerText.includes('voice') || lowerText.includes('speak')) {
-          tags.push('voice');
-        }
-        
-        // Fill with default tags if needed
-        while (tags.length < 3) {
-          const defaultTags = ['ai-generated', 'echo', 'conversation'];
-          const remainingTags = defaultTags.filter(tag => !tags.includes(tag));
-          if (remainingTags.length > 0) {
-            tags.push(remainingTags[0]);
-          } else {
-            break;
-          }
-        }
-        
-        return tags.slice(0, 3);
-      };
-
-      const newPost = addUserPost({
-        username: '@EchoHQ',
-        displayName: 'EchoHQ',
-        avatar: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-        audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav', // Placeholder audio
-        duration: estimatedDuration,
-        voiceStyle: 'AI Assistant',
-        replies: 0,
-        timestamp: 'now',
-        tags: generateTags(content),
-        content: content,
-        isUserPost: true,
-        createdVia: 'ai-conversation',
-        originalText: content,
-      });
-
-      console.log('✅ AI post created successfully:', newPost);
-
-      // Show success alert
-      Alert.alert(
-        'Echo Created!',
-        'Your AI conversation has been turned into an echo and added to your profile.',
-        [
-          {
-            text: 'View Profile',
-            onPress: () => {
-              // Navigate to profile tab to see the new post
-              router.push('/(tabs)/profile');
-            },
-          },
-          {
-            text: 'OK',
-            style: 'default',
-          },
-        ]
-      );
-
-      // Reset the AI post content
-      setAiPostContent(null);
-    } catch (error) {
-      console.error('❌ Error creating AI post:', error);
-      Alert.alert('Error', 'Failed to create echo from AI conversation. Please try again.');
-      setAiPostContent(null);
-    }
   };
 
   // Redirect to login if not authenticated
@@ -218,7 +119,6 @@ export default function TabLayout() {
             dom={{ style: styles.aiComponent }}
             platform={Platform.OS}
             onMessage={handleAIMessage}
-            onEchoContentExtracted={handleEchoContentExtracted}
           />
         </View>
       </View>

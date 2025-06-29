@@ -1,5 +1,5 @@
 "use dom";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useConversation } from "@11labs/react";
 import { View, Pressable, StyleSheet } from "react-native";
 import type { Message } from "../conversational-ai/ChatMessage";
@@ -30,6 +30,30 @@ async function requestMicrophonePermission() {
   }
 }
 
+// Function to extract content after "echo me"
+function extractEchoContent(userMessage) {
+  if (!userMessage || typeof userMessage !== 'string') {
+    return null;
+  }
+  
+  // Convert to lowercase for case-insensitive matching
+  const lowerMessage = userMessage.toLowerCase();
+  const trigger = 'echo me';
+  
+  // Find the position of "echo me"
+  const triggerIndex = lowerMessage.indexOf(trigger);
+  
+  if (triggerIndex === -1) {
+    return null; // "echo me" not found
+  }
+  
+  // Extract content after "echo me" (including the space after)
+  const startIndex = triggerIndex + trigger.length;
+  const extractedContent = userMessage.substring(startIndex).trim();
+  
+  return extractedContent || null; // Return null if empty after trimming
+}
+
 export default function ConvAiDOMComponent({
   platform,
   onMessage,
@@ -38,14 +62,72 @@ export default function ConvAiDOMComponent({
   platform: string;
   onMessage: (message: Message) => void;
 }) {
+  // State to store extracted echo content
+  const [echoContent, setEchoContent] = useState(null);
+
   const conversation = useConversation({
     onConnect: () => console.log("Connected"),
     onDisconnect: () => console.log("Disconnected"),
     onMessage: message => {
+      console.log("Received message:", message);
+      
+      // Try to extract text from different possible message formats
+      const messageText = message.message || message.text || message.content || (typeof message === 'string' ? message : '');
+      
+      // Extract echo content if present
+      const extractedEcho = extractEchoContent(messageText);
+      
+      if (extractedEcho) {
+        console.log("🔊 Echo content extracted:", extractedEcho);
+        setEchoContent(extractedEcho);
+        
+        // You can also do additional processing here
+        // For example, trigger specific actions based on the echo content
+      } else {
+        console.log("No echo content found in message");
+      }
+      
+      // Call the original onMessage callback
       onMessage(message);
     },
     onError: error => console.error("Error:", error),
   });
+  
+  // Define clientTools object with all your tools
+  const clientTools = {
+    logMessage: async ({ message }) => {
+      console.log(message);
+    },
+    echoMe: async ({ message }) => {
+      console.log("🔧 echoMe tool called with:", message);
+      
+      // Extract content from the tool call as well
+      const extractedEcho = extractEchoContent(message);
+      if (extractedEcho) {
+        console.log("🔊 Echo content from tool:", extractedEcho);
+        setEchoContent(extractedEcho);
+      }
+      
+      console.log(message);
+    },
+    getPostContent: async () => {
+      console.log("🚀 getPostContent called - starting to fetch post content");
+      
+      // Fetch post content (e.g., from an API)
+      const postContent = {
+        text: "Test post content",
+      };
+      
+      console.log("📦 Post content fetched successfully:");
+      console.log("📝 Content:", postContent);
+      console.log("🔍 Content type:", typeof postContent);
+      console.log("📊 Content keys:", Object.keys(postContent));
+      console.log("✅ Returning post content to agent");
+      
+      // Return data directly to the agent.
+      return postContent;
+    }
+  };
   
   const startConversation = useCallback(async () => {
     try {
@@ -63,11 +145,7 @@ export default function ConvAiDOMComponent({
         dynamicVariables: {
           platform,
         },
-        clientTools: {
-          logMessage: async ({ message }) => {
-            console.log(message);
-          },
-        },
+        clientTools, // Pass the complete clientTools object
       });
     } catch (error) {
       console.error("Failed to start conversation:", error);
@@ -78,10 +156,15 @@ export default function ConvAiDOMComponent({
   const stopConversation = useCallback(async () => {
     try {
       await conversation.endSession();
+      // Clear echo content when conversation stops
+      setEchoContent(null);
     } catch (error) {
       console.error("Failed to stop conversation:", error);
     }
   }, [conversation]);
+
+  // Log current echo content for debugging
+  console.log("Current echo content variable:", echoContent);
 
   return (
     <Pressable

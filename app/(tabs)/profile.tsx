@@ -8,17 +8,15 @@ import {
   Image,
   RefreshControl,
   Alert,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Audio } from 'expo-av';
-import { Settings, User, Mail, Calendar, MailCheck, MapPin, Link as LinkIcon, Shield, Play, Pause, Headphones, Share, Bookmark, BookmarkCheck, Download, X } from 'lucide-react-native';
+import { Settings, User, Mail, Calendar, MailCheck, MapPin, Link as LinkIcon, Shield, Play, Heart, Eye, Pause, Loader } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { makeAuthenticatedRequest } from '@/utils/api';
-import { usePlay } from '@/contexts/PlayContext';
-import { useSave } from '@/contexts/SaveContext';
-import { useTranscription } from '@/contexts/TranscriptionContext';
 import { globalStyles, colors, gradients, spacing, borderRadius, getResponsiveFontSize } from '@/styles/globalStyles';
 
 interface ApiUser {
@@ -72,28 +70,9 @@ export default function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [bioExpanded, setBioExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState('echoes');
-  const [playProgress, setPlayProgress] = useState<Record<string, number>>({});
-  const [playTimers, setPlayTimers] = useState<Record<string, NodeJS.Timeout>>({});
-
-  const { 
-    currentlyPlaying, 
-    setCurrentlyPlaying, 
-    incrementPlayCount, 
-    getPlayCount 
-  } = usePlay();
-
-  const { transcriptionsEnabled } = useTranscription();
-  
-  const { 
-    downloadPost, 
-    removeDownload, 
-    savePost, 
-    unsavePost,
-    savedPosts,
-    commuteQueue,
-    isDownloaded, 
-    isDownloading 
-  } = useSave();
+  const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
+  const [audioLoading, setAudioLoading] = useState<string | null>(null);
+  const [currentSound, setCurrentSound] = useState<Audio.Sound | null>(null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -102,125 +81,56 @@ export default function ProfileScreen() {
     }
   }, [isAuthenticated, authLoading]);
 
-  // Cleanup timers on unmount
+  // Cleanup audio on unmount
   useEffect(() => {
     return () => {
-      Object.values(playTimers).forEach(timer => clearInterval(timer));
+      if (currentSound) {
+        currentSound.unloadAsync();
+      }
     };
-  }, []);
+  }, [currentSound]);
 
-  // Handle play functionality matching the feed
-  const handlePlay = (postId: string, duration: number) => {
-    // Stop any currently playing audio
-    if (currentlyPlaying && currentlyPlaying !== postId) {
-      handleStop(currentlyPlaying);
-    }
+  // Handle audio press with proper state management
+  const handleAudioPress = async (audioUrl: string, postId: string) => {
+    try {
+      // If this is the currently playing audio, pause it
+      if (currentlyPlayingId === postId && currentSound) {
+        await currentSound.pauseAsync();
+        setCurrentlyPlayingId(null);
+        return;
+      }
 
-    if (currentlyPlaying === postId) {
-      // Pause current audio
-      handleStop(postId);
-    } else {
-      // Start playing
-      setCurrentlyPlaying(postId);
+      // Stop any currently playing audio
+      if (currentSound) {
+        await currentSound.unloadAsync();
+        setCurrentSound(null);
+        setCurrentlyPlayingId(null);
+      }
+
+      setAudioLoading(postId);
+      console.log('Playing audio:', audioUrl);
       
-      // Start progress simulation
-      const startTime = Date.now();
-      const timer = setInterval(() => {
-        const elapsed = (Date.now() - startTime) / 1000;
-        const progress = Math.min(elapsed / duration, 1);
-        
-        setPlayProgress(prev => ({
-          ...prev,
-          [postId]: progress
-        }));
-
-        // Increment play count after 5 seconds
-        if (elapsed >= 5 && !getPlayCount(postId)) {
-          incrementPlayCount(postId);
+      const { sound } = await Audio.Sound.createAsync({ uri: audioUrl });
+      setCurrentSound(sound);
+      setCurrentlyPlayingId(postId);
+      
+      await sound.playAsync();
+      
+      // Handle playback completion
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          sound.unloadAsync();
+          setCurrentSound(null);
+          setCurrentlyPlayingId(null);
         }
-
-        // Stop when complete
-        if (progress >= 1) {
-          handleStop(postId);
-        }
-      }, 100);
-
-      setPlayTimers(prev => ({
-        ...prev,
-        [postId]: timer
-      }));
-    }
-  };
-
-  const handleStop = (postId: string) => {
-    setCurrentlyPlaying(null);
-    
-    // Clear timer
-    if (playTimers[postId]) {
-      clearInterval(playTimers[postId]);
-      setPlayTimers(prev => {
-        const newTimers = { ...prev };
-        delete newTimers[postId];
-        return newTimers;
       });
-    }
-    
-    // Reset progress
-    setPlayProgress(prev => ({
-      ...prev,
-      [postId]: 0
-    }));
-  };
-
-  // Save/unsave functionality matching the feed
-  const handleSave = async (post: Post) => {
-    const isInSavedPosts = savedPosts.some(p => p.id === post.id);
-    
-    if (isInSavedPosts) {
-      await unsavePost(post.id);
-    } else {
-      // Convert API post to the format expected by savePost
-      const postForSave = {
-        id: post.id,
-        username: `@${post.username}`,
-        displayName: post.display_name,
-        avatar: post.avatar,
-        audioUrl: post.audio_url,
-        duration: post.duration,
-        voiceStyle: post.voice_style,
-        replies: 0,
-        timestamp: formatTimestamp(post.timestamp),
-        tags: post.tags,
-        content: post.content,
-        createdAt: new Date(post.created_at),
-        listenCount: post.listen_count,
-      };
-      await savePost(postForSave, true);
-    }
-  };
-
-  // Download functionality matching the feed
-  const handleDownload = async (post: Post) => {
-    if (isDownloaded(post.id)) {
-      await removeDownload(post.id);
-    } else {
-      // Convert API post to the format expected by downloadPost
-      const postForDownload = {
-        id: post.id,
-        username: `@${post.username}`,
-        displayName: post.display_name,
-        avatar: post.avatar,
-        audioUrl: post.audio_url,
-        duration: post.duration,
-        voiceStyle: post.voice_style,
-        replies: 0,
-        timestamp: formatTimestamp(post.timestamp),
-        tags: post.tags,
-        content: post.content,
-        createdAt: new Date(post.created_at),
-        listenCount: post.listen_count,
-      };
-      await downloadPost(postForDownload);
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      Alert.alert('Audio Error', 'Failed to play audio. Please try again.');
+      setCurrentlyPlayingId(null);
+      setCurrentSound(null);
+    } finally {
+      setAudioLoading(null);
     }
   };
 
@@ -291,8 +201,10 @@ export default function ProfileScreen() {
 
   const handleRefresh = async () => {
     // Stop any playing audio during refresh
-    if (currentlyPlaying) {
-      handleStop(currentlyPlaying);
+    if (currentSound) {
+      await currentSound.unloadAsync();
+      setCurrentSound(null);
+      setCurrentlyPlayingId(null);
     }
     
     await Promise.all([
@@ -341,13 +253,6 @@ export default function ProfileScreen() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const formatCurrentTime = (progress: number, duration: number) => {
-    const currentSeconds = Math.floor(progress * duration);
-    const mins = Math.floor(currentSeconds / 60);
-    const secs = currentSeconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const formatTimestamp = (timestamp: string): string => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -362,152 +267,76 @@ export default function ProfileScreen() {
     return date.toLocaleDateString();
   };
 
-  // Render post item matching the feed style
-  const renderPostItem = (post: Post) => {
-    const isInSavedPosts = savedPosts.some(p => p.id === post.id);
+  // Render post item
+  const renderPostItem = ({ item }: { item: Post }) => {
+    const isCurrentlyPlaying = currentlyPlayingId === item.id;
+    const isLoading = audioLoading === item.id;
     
     return (
-      <View key={post.id} style={[globalStyles.postCard, { marginHorizontal: spacing.xl }]}>
-        <LinearGradient
-          colors={gradients.surface}
-          style={globalStyles.postGradient}>
-          
-          <View style={globalStyles.postHeader}>
-            <View style={globalStyles.userInfo}>
-              <Image source={{ uri: post.avatar }} style={globalStyles.avatar} />
-              <View>
-                <Text style={globalStyles.displayName}>{post.display_name}</Text>
-                <Text style={globalStyles.username}>@{post.username}</Text>
-              </View>
-            </View>
-            <Text style={globalStyles.timestamp}>{formatTimestamp(post.timestamp)}</Text>
-          </View>
-
-          {/* Voice Style Badge */}
-          <View style={{ marginBottom: spacing.lg }}>
-            <View style={[
-              globalStyles.voiceStyleBadge,
-              post.voice_style === 'Original' && globalStyles.originalVoiceBadge
-            ]}>
-              <Text style={[
-                globalStyles.voiceStyleText,
-                post.voice_style === 'Original' && globalStyles.originalVoiceText
-              ]}>
-                {post.voice_style}
-              </Text>
-            </View>
-          </View>
-
-          {/* Content - Only show if transcriptions are enabled */}
-          {transcriptionsEnabled && (
-            <Text style={globalStyles.postContent}>
-              {post.content}
+      <View style={styles.postItem}>
+        <View style={styles.postHeader}>
+          <View style={styles.postInfo}>
+            <Text style={[styles.postContent, { fontSize: getResponsiveFontSize(14) }]} numberOfLines={3}>
+              {item.content}
             </Text>
-          )}
-
-          {/* Audio Progress with Play Button */}
-          <View style={globalStyles.audioContainer}>
-            <View style={globalStyles.audioControls}>
-              <TouchableOpacity
-                style={globalStyles.playButton}
-                onPress={() => handlePlay(post.id, post.duration)}>
-                {currentlyPlaying === post.id ? (
-                  <Pause size={20} color={colors.textPrimary} />
-                ) : (
-                  <Play size={20} color={colors.textPrimary} />
-                )}
-              </TouchableOpacity>
-              
-              <View style={globalStyles.progressContainer}>
-                <View style={globalStyles.progressTrack}>
-                  <View style={[
-                    globalStyles.progressFill, 
-                    { width: `${(playProgress[post.id] || 0) * 100}%` }
-                  ]} />
-                </View>
-                <View style={globalStyles.timeContainer}>
-                  <Text style={globalStyles.currentTime}>
-                    {formatCurrentTime(playProgress[post.id] || 0, post.duration)}
-                  </Text>
-                  <Text style={globalStyles.totalTime}>{formatDuration(post.duration)}</Text>
-                </View>
-              </View>
-            </View>
+            <Text style={[styles.postTimestamp, { fontSize: getResponsiveFontSize(12) }]}>
+              {formatTimestamp(item.timestamp)}
+            </Text>
           </View>
-
-          {/* Tags Section - Limited to 3 tags maximum */}
-          <View style={globalStyles.tagsContainer}>
-            {post.tags.slice(0, 3).map((tag, index) => (
-              <TouchableOpacity 
-                key={index} 
-                style={[
-                  globalStyles.tagButton,
-                  tag === 'comedy' && globalStyles.comedyTag
-                ]}
-                activeOpacity={0.7}>
-                <Text style={[
-                  globalStyles.tagText,
-                  tag === 'comedy' && globalStyles.comedyTagText
-                ]}>
+          <TouchableOpacity 
+            style={[
+              styles.playButton, 
+              isCurrentlyPlaying && styles.playButtonActive
+            ]}
+            onPress={() => handleAudioPress(item.audio_url, item.id)}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader size={16} color={colors.textPrimary} />
+            ) : isCurrentlyPlaying ? (
+              <Pause size={16} color={colors.textPrimary} fill={colors.accent} />
+            ) : (
+              <Play size={16} color={colors.textPrimary} fill="transparent" />
+            )}
+          </TouchableOpacity>
+        </View>
+      
+        <View style={styles.postMeta}>
+          <Text style={[styles.postDuration, { fontSize: getResponsiveFontSize(12) }]}>
+            {formatDuration(item.duration)}
+          </Text>
+          <Text style={[styles.postStyle, { fontSize: getResponsiveFontSize(12) }]}>
+            {item.voice_style}
+          </Text>
+        </View>
+        
+        {item.tags.length > 0 && (
+          <View style={styles.postTags}>
+            {item.tags.map((tag, index) => (
+              <View key={index} style={styles.tag}>
+                <Text style={[styles.tagText, { fontSize: getResponsiveFontSize(10) }]}>
                   #{tag}
                 </Text>
-              </TouchableOpacity>
+              </View>
             ))}
           </View>
-
-          {/* Actions Container - Single Row */}
-          <View style={globalStyles.actionsContainer}>
-            {/* Listen Count Display */}
-            <View style={globalStyles.actionButton}>
-              <Headphones
-                size={20}
-                color={colors.textMuted}
-              />
-              <Text style={globalStyles.actionText}>
-                {post.listen_count}
-              </Text>
-            </View>
-
-            <TouchableOpacity style={globalStyles.actionButton}>
-              <Share size={20} color={colors.textMuted} />
-            </TouchableOpacity>
-
-            {/* Independent Save Button */}
-            <TouchableOpacity 
-              style={globalStyles.actionButton}
-              onPress={() => handleSave(post)}>
-              {isInSavedPosts ? (
-                <BookmarkCheck size={20} color={colors.bookmark} fill={colors.bookmark} />
-              ) : (
-                <Bookmark size={20} color={colors.textMuted} />
-              )}
-            </TouchableOpacity>
-
-            {/* Independent Download Button */}
-            <TouchableOpacity 
-              style={globalStyles.actionButton}
-              onPress={() => handleDownload(post)}>
-              {isDownloading(post.id) ? (
-                <View style={globalStyles.loadingContainer}>
-                  <View style={globalStyles.loadingSpinner} />
-                </View>
-              ) : isDownloaded(post.id) ? (
-                <View style={{ 
-                  width: 20, 
-                  height: 20, 
-                  borderRadius: 10, 
-                  backgroundColor: 'rgba(220, 38, 38, 0.15)', 
-                  alignItems: 'center', 
-                  justifyContent: 'center' 
-                }}>
-                  <X size={20} color={colors.error} />
-                </View>
-              ) : (
-                <Download size={20} color={colors.download} />
-              )}
-            </TouchableOpacity>
+        )}
+        
+        <View style={styles.postStats}>
+          <View style={styles.statRow}>
+            <Heart size={14} color={item.is_liked ? colors.accent : colors.textMuted} 
+                  fill={item.is_liked ? colors.accent : 'transparent'} />
+            <Text style={[styles.statText, { fontSize: getResponsiveFontSize(12) }]}>
+              {item.likes}
+            </Text>
           </View>
-        </LinearGradient>
+          <View style={styles.statRow}>
+            <Eye size={14} color={colors.textMuted} />
+            <Text style={[styles.statText, { fontSize: getResponsiveFontSize(12) }]}>
+              {item.listen_count}
+            </Text>
+          </View>
+        </View>
       </View>
     );
   };
@@ -752,9 +581,14 @@ export default function ProfileScreen() {
                         </Text>
                       </View>
                     ) : userPosts.length > 0 ? (
-                      <View style={styles.postsList}>
-                        {userPosts.map(renderPostItem)}
-                      </View>
+                      <FlatList
+                        data={userPosts}
+                        renderItem={renderPostItem}
+                        keyExtractor={(item) => item.id}
+                        style={styles.postsList}
+                        scrollEnabled={false}
+                        showsVerticalScrollIndicator={false}
+                      />
                     ) : (
                       <View style={styles.emptyState}>
                         <Text style={[styles.emptyStateText, { fontSize: getResponsiveFontSize(16) }]}>
@@ -1005,6 +839,92 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   postsList: {
-    paddingBottom: spacing.xl,
+    flex: 1,
+  },
+  postItem: {
+    backgroundColor: colors.surface,
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.sm,
+    padding: spacing.lg,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  postHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.sm,
+  },
+  postInfo: {
+    flex: 1,
+    marginRight: spacing.md,
+  },
+  postContent: {
+    fontFamily: 'Inter-Regular',
+    color: colors.textPrimary,
+    lineHeight: 20,
+    marginBottom: spacing.xs,
+  },
+  postTimestamp: {
+    fontFamily: 'Inter-Regular',
+    color: colors.textMuted,
+  },
+  playButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playButtonActive: {
+    backgroundColor: colors.accent + '20',
+  },
+  postMeta: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  postDuration: {
+    fontFamily: 'Inter-Medium',
+    color: colors.accent,
+  },
+  postStyle: {
+    fontFamily: 'Inter-Regular',
+    color: colors.textMuted,
+    textTransform: 'capitalize',
+  },
+  postTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  tag: {
+    backgroundColor: colors.surfaceSecondary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+  },
+  tagText: {
+    fontFamily: 'Inter-Medium',
+    color: colors.accent,
+  },
+  postStats: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  statText: {
+    fontFamily: 'Inter-Regular',
+    color: colors.textMuted,
   },
 });

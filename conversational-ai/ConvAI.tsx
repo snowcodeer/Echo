@@ -30,69 +30,19 @@ async function requestMicrophonePermission() {
   }
 }
 
-// Function to extract content after "echo me"
-function extractEchoContent(userMessage) {
-  if (!userMessage || typeof userMessage !== 'string') {
-    return null;
-  }
-  
-  // Convert to lowercase for case-insensitive matching
-  const lowerMessage = userMessage.toLowerCase();
-  const trigger = 'echo me';
-  
-  // Find the position of "echo me"
-  const triggerIndex = lowerMessage.indexOf(trigger);
-  
-  if (triggerIndex === -1) {
-    return null; // "echo me" not found
-  }
-  
-  // Extract content after "echo me" (including the space after)
-  const startIndex = triggerIndex + trigger.length;
-  const extractedContent = userMessage.substring(startIndex).trim();
-  
-  return extractedContent || null; // Return null if empty after trimming
-}
-
 export default function ConvAiDOMComponent({
   platform,
   onMessage,
-  onEchoContentExtracted,
 }: {
   dom?: import("expo/dom").DOMProps;
   platform: string;
   onMessage: (message: Message) => void;
-  onEchoContentExtracted?: (content: string) => void;
 }) {
-  // State to store extracted echo content
-  const [echoContent, setEchoContent] = useState(null);
-
-  // Watch for changes in echoContent and notify parent
-  useEffect(() => {
-    if (echoContent && onEchoContentExtracted) {
-      console.log("🚀 Notifying parent about echo content:", echoContent);
-      onEchoContentExtracted(echoContent);
-    }
-  }, [echoContent, onEchoContentExtracted]);
-
   const conversation = useConversation({
     onConnect: () => console.log("Connected"),
     onDisconnect: () => console.log("Disconnected"),
     onMessage: message => {
       console.log("Received message:", message);
-      
-      // Try to extract text from different possible message formats
-      const messageText = message.message || message.text || message.content || (typeof message === 'string' ? message : '');
-      
-      // Extract echo content if present
-      const extractedEcho = extractEchoContent(messageText);
-      
-      if (extractedEcho) {
-        console.log("🔊 Echo content extracted:", extractedEcho);
-        setEchoContent(extractedEcho);
-      } else {
-        console.log("No echo content found in message");
-      }
       
       // Call the original onMessage callback
       onMessage(message);
@@ -104,21 +54,6 @@ export default function ConvAiDOMComponent({
   const clientTools = {
     logMessage: async ({ message }) => {
       console.log(message);
-    },
-    echoMe: async ({ postContent }) => {
-      console.log("🔧 echoMe tool called with post content:", postContent);
-      
-      if (postContent && typeof postContent === 'string' && postContent.trim()) {
-        console.log("🔊 Setting echo content from tool:", postContent);
-        setEchoContent(postContent.trim());
-        
-        // Also notify parent immediately
-        if (onEchoContentExtracted) {
-          onEchoContentExtracted(postContent.trim());
-        }
-      }
-      
-      return "Post content received and will be processed";
     },
     getPostContent: async () => {
       console.log("🚀 getPostContent called - starting to fetch post content");
@@ -166,15 +101,10 @@ export default function ConvAiDOMComponent({
   const stopConversation = useCallback(async () => {
     try {
       await conversation.endSession();
-      // Clear echo content when conversation stops
-      setEchoContent(null);
     } catch (error) {
       console.error("Failed to stop conversation:", error);
     }
   }, [conversation]);
-
-  // Log current echo content for debugging
-  console.log("Current echo content variable:", echoContent);
 
   return (
     <Pressable

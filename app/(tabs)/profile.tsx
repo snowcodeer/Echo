@@ -72,7 +72,7 @@ export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState('echoes');
   const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
   const [audioLoading, setAudioLoading] = useState<string | null>(null);
-  const [playbackStatus, setPlaybackStatus] = useState<any>(null);
+  const [currentSound, setCurrentSound] = useState<Audio.Sound | null>(null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -81,48 +81,56 @@ export default function ProfileScreen() {
     }
   }, [isAuthenticated, authLoading]);
 
-  // Handle audio press
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (currentSound) {
+        currentSound.unloadAsync();
+      }
+    };
+  }, [currentSound]);
+
+  // Handle audio press with proper state management
   const handleAudioPress = async (audioUrl: string, postId: string) => {
     try {
+      // If this is the currently playing audio, pause it
+      if (currentlyPlayingId === postId && currentSound) {
+        await currentSound.pauseAsync();
+        setCurrentlyPlayingId(null);
+        return;
+      }
+
+      // Stop any currently playing audio
+      if (currentSound) {
+        await currentSound.unloadAsync();
+        setCurrentSound(null);
+        setCurrentlyPlayingId(null);
+      }
+
       setAudioLoading(postId);
       console.log('Playing audio:', audioUrl);
+      
       const { sound } = await Audio.Sound.createAsync({ uri: audioUrl });
+      setCurrentSound(sound);
       setCurrentlyPlayingId(postId);
+      
       await sound.playAsync();
       
-      // Cleanup after playing
+      // Handle playback completion
       sound.setOnPlaybackStatusUpdate((status) => {
-        setPlaybackStatus(status);
-        if (status.didJustFinish) {
+        if (status.isLoaded && status.didJustFinish) {
           sound.unloadAsync();
+          setCurrentSound(null);
           setCurrentlyPlayingId(null);
-          setPlaybackStatus(null);
         }
       });
     } catch (error) {
       console.error('Error playing audio:', error);
       Alert.alert('Audio Error', 'Failed to play audio. Please try again.');
+      setCurrentlyPlayingId(null);
+      setCurrentSound(null);
     } finally {
       setAudioLoading(null);
-    }
-  };
-
-  // Simple audio play function
-  const playAudio = async (audioUrl: string) => {
-    try {
-      console.log('Playing audio:', audioUrl);
-      const { sound } = await Audio.Sound.createAsync({ uri: audioUrl });
-      await sound.playAsync();
-      
-      // Cleanup after playing
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) {
-          sound.unloadAsync();
-        }
-      });
-    } catch (error) {
-      console.error('Error playing audio:', error);
-      Alert.alert('Audio Error', 'Failed to play audio. Please try again.');
     }
   };
 
@@ -192,6 +200,13 @@ export default function ProfileScreen() {
   }, [isAuthenticated, authLoading]);
 
   const handleRefresh = async () => {
+    // Stop any playing audio during refresh
+    if (currentSound) {
+      await currentSound.unloadAsync();
+      setCurrentSound(null);
+      setCurrentlyPlayingId(null);
+    }
+    
     await Promise.all([
       fetchUserProfile(true),
       fetchUserPosts(true)
@@ -256,7 +271,6 @@ export default function ProfileScreen() {
   const renderPostItem = ({ item }: { item: Post }) => {
     const isCurrentlyPlaying = currentlyPlayingId === item.id;
     const isLoading = audioLoading === item.id;
-    const isPlaying = isCurrentlyPlaying && playbackStatus?.isPlaying;
     
     return (
       <View style={styles.postItem}>
@@ -279,10 +293,10 @@ export default function ProfileScreen() {
           >
             {isLoading ? (
               <Loader size={16} color={colors.textPrimary} />
-            ) : isPlaying ? (
+            ) : isCurrentlyPlaying ? (
               <Pause size={16} color={colors.textPrimary} fill={colors.accent} />
             ) : (
-              <Play size={16} color={colors.textPrimary} fill={isCurrentlyPlaying ? colors.accent : 'transparent'} />
+              <Play size={16} color={colors.textPrimary} fill="transparent" />
             )}
           </TouchableOpacity>
         </View>

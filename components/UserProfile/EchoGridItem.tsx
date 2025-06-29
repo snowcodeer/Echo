@@ -7,7 +7,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Play, Heart, Lock } from 'lucide-react-native';
+import { Play, MessageCircle, Lock } from 'lucide-react-native';
 import { UserEcho } from '@/types/user';
 import { useUserActivity } from '@/hooks/useUserActivity';
 import { colors, spacing, borderRadius, typography } from '@/styles/globalStyles';
@@ -77,8 +77,8 @@ export default function EchoGridItem({
         <View style={styles.footer}>
           <View style={styles.stats}>
             <View style={styles.statItem}>
-              <Heart size={10} color={colors.like} />
-              <Text style={styles.statText}>{echo.likes}</Text>
+              <MessageCircle size={10} color={colors.textMuted} />
+              <Text style={styles.statText}>{echo.replies}</Text>
             </View>
             {echo.duration && (
               <Text style={styles.duration}>

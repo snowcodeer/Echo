@@ -6,7 +6,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Play, Heart, MessageCircle, Lock, HeartHandshake } from 'lucide-react-native';
+import { Play, MessageCircle, Lock, HeartHandshake } from 'lucide-react-native';
 import { UserEcho } from '@/types/user';
 import { useUserActivity } from '@/hooks/useUserActivity';
 import { colors, spacing, borderRadius, typography } from '@/styles/globalStyles';
@@ -59,7 +59,7 @@ export default function EchoListItem({
           <View style={styles.headerRight}>
             {showLikedIndicator && (
               <View style={styles.likedIndicator}>
-                <HeartHandshake size={14} color={colors.like} />
+                <HeartHandshake size={14} color={colors.accent} />
               </View>
             )}
             {showPrivateIndicator && !echo.isPublic && (
@@ -90,10 +90,6 @@ export default function EchoListItem({
         {/* Footer Stats */}
         <View style={styles.footer}>
           <View style={styles.stats}>
-            <View style={styles.statItem}>
-              <Heart size={14} color={colors.textMuted} />
-              <Text style={styles.statText}>{echo.likes}</Text>
-            </View>
             <View style={styles.statItem}>
               <MessageCircle size={14} color={colors.textMuted} />
               <Text style={styles.statText}>{echo.replies}</Text>
@@ -151,7 +147,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 59, 92, 0.15)',
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },

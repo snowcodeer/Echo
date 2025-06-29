@@ -53,13 +53,11 @@ export function updateUserPost(postId: string, updates: Partial<UserPost>): User
 export function getUserStats() {
   const totalPosts = userPosts.length;
   const totalListens = userPosts.reduce((sum, post) => sum + (post.listenCount || 0), 0);
-  const totalLikes = userPosts.reduce((sum, post) => sum + post.likes, 0);
   const totalReplies = userPosts.reduce((sum, post) => sum + post.replies, 0);
   
   return {
     totalPosts,
     totalListens,
-    totalLikes,
     totalReplies,
     averageListensPerPost: totalPosts > 0 ? Math.round(totalListens / totalPosts) : 0,
   };

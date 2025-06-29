@@ -191,7 +191,7 @@ export default function PostCard({
 
         {/* Actions Container - Single Row */}
         <View style={globalStyles.actionsContainer}>
-          {/* Listen Count Display - Replaces Like Button */}
+          {/* Listen Count Display */}
           <View style={globalStyles.actionButton}>
             <Headphones
               size={20}

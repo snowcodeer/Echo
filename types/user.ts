@@ -35,7 +35,6 @@ export interface UserEcho {
   audioUrl?: string;
   duration?: number;
   voiceStyle: string;
-  likes: number;
   replies: number;
   createdAt: Date;
   tags: string[];

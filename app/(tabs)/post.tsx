@@ -130,10 +130,8 @@ export default function PostScreen() {
         audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav', // Placeholder audio
         duration: Math.max(Math.min(Math.floor(textContent.length / 15) + 5, 10), 5), // Duration between 5-10 seconds based on text length
         voiceStyle: selectedVoiceStyle === 'original' ? 'Original' : selectedVoiceStyle,
-        likes: 0,
         replies: 0,
         timestamp: 'now',
-        isLiked: false,
         tags: generatedTags.length > 0 ? generatedTags : ['voice', 'original', 'authentic'],
         content: textContent,
         isUserPost: true,
@@ -289,10 +287,8 @@ export default function PostScreen() {
         audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav', // In a real app, this would be the recorded audio URL
         duration: Math.max(Math.min(recordingDuration, 10), 5), // Ensure duration is between 5-10 seconds
         voiceStyle: selectedVoiceStyle === 'original' ? 'Original' : selectedVoiceStyle,
-        likes: 0,
         replies: 0,
         timestamp: 'now',
-        isLiked: false,
         tags: ['voice', 'original', 'authentic'], // Default tags for voice recordings
         content: 'Voice recording shared via Echo', // Placeholder content
         isUserPost: true,
